@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
@@ -36,6 +37,8 @@ enum class AppBarType {
 fun NatureAlbumPortraitTopAppBar(
     title: String,
     type: AppBarType,
+    actionTestTag: String = stringResource(R.string.top_bar_action_semantics_test_tag),
+    navigationTestTag: String = stringResource(R.string.top_bar_navigation_semantics_test_tag),
     navigateToBackScreen: () -> Unit,
     navigateToMyPage: () -> Unit,
 ) {
@@ -44,7 +47,7 @@ fun NatureAlbumPortraitTopAppBar(
         navigationIcon = {
             if (type == AppBarType.All || type == AppBarType.Navigation) {
                 IconButton(
-                    modifier = Modifier.semantics { testTag = "navigation" },
+                    modifier = Modifier.semantics { testTag = navigationTestTag },
                     onClick = { navigateToBackScreen() }
                 ) {
                     Icon(
@@ -57,7 +60,7 @@ fun NatureAlbumPortraitTopAppBar(
         actions = {
             if (type == AppBarType.All || type == AppBarType.Action) {
                 MyPageNavigationIconButton(
-                    modifier = Modifier.semantics { testTag = "action" },
+                    modifier = Modifier.semantics { testTag = actionTestTag },
                     navigateToMyPage = navigateToMyPage
                 )
             }
@@ -72,6 +75,8 @@ fun NatureAlbumPortraitTopAppBar(
 fun NatureAlbumLandscapeTopAppBar(
     title: String,
     type: AppBarType,
+    actionTestTag: String = stringResource(R.string.top_bar_action_semantics_test_tag),
+    navigationTestTag: String = stringResource(R.string.top_bar_navigation_semantics_test_tag),
     navigateToBackScreen: () -> Unit,
     navigateToMyPage: () -> Unit,
 ) {
@@ -100,7 +105,7 @@ fun NatureAlbumLandscapeTopAppBar(
         if (type == AppBarType.All || type == AppBarType.Action) {
             Box {
                 MyPageNavigationIconButton(
-                    modifier = Modifier.semantics { testTag = "action" },
+                    modifier = Modifier.semantics { testTag = actionTestTag },
                     navigateToMyPage = navigateToMyPage
                 )
             }
