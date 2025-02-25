@@ -27,11 +27,9 @@ class FirebaseDataSource @Inject constructor(
         label: String,
         fileName: String,
         uri: Uri,
-    ): Result<Uri> {
-        return runCatching {
-            val task = fireStorage.getReference("$uid/$label/$fileName").putFile(uri).await()
-            task.storage.downloadUrl.await()
-        }
+    ): Uri {
+        val task = fireStorage.getReference("$uid/$label/$fileName").putFile(uri).await()
+        return task.storage.downloadUrl.await()
     }
 
     suspend fun deleteImage(uid: String, label: Label, fileName: String) {
@@ -46,29 +44,23 @@ class FirebaseDataSource @Inject constructor(
         fireStore.collection(USER).document(uid).set(firestoreUser)
     }
 
-    suspend fun updateUser(uid: String, token: String): Result<Void> {
-        return runCatching {
-            fireStore.collection(USER).document(uid)
-                .update(FCM_TOKEN, token)
-                .await()
-        }
+    suspend fun updateUser(uid: String, token: String) {
+        fireStore.collection(USER).document(uid)
+            .update(FCM_TOKEN, token)
+            .await()
     }
 
-    suspend fun getUserLabels(uid: String): Result<QuerySnapshot> {
-        return runCatching {
-            fireStore.collection(USER).document(uid).collection(LABEL).get().await()
-        }
+    suspend fun getUserLabels(uid: String): QuerySnapshot {
+        return fireStore.collection(USER).document(uid).collection(LABEL).get().await()
     }
 
     suspend fun setUserLabel(
         uid: String,
         labelName: String,
         labelData: FirebaseLabel,
-    ): Result<Void> {
-        return runCatching {
-            fireStore.collection(USER).document(uid).collection(LABEL).document(labelName)
-                .set(labelData).await()
-        }
+    ) {
+        fireStore.collection(USER).document(uid).collection(LABEL).document(labelName)
+            .set(labelData).await()
     }
 
     suspend fun deleteUserLabel(uid: String, label: Label) {
@@ -99,13 +91,11 @@ class FirebaseDataSource @Inject constructor(
         uid: String,
         fileName: String,
         photoData: FirebasePhotoInfo,
-    ): Result<Void> {
-        return runCatching {
-            fireStore.collection(USER).document(uid)
-                .collection(PHOTOS).document(fileName)
-                .set(photoData)
-                .await()
-        }
+    ) {
+        fireStore.collection(USER).document(uid)
+            .collection(PHOTOS).document(fileName)
+            .set(photoData)
+            .await()
     }
 
     suspend fun deleteUserPhoto(uid: String, fileName: String) {
@@ -137,39 +127,35 @@ class FirebaseDataSource @Inject constructor(
         targetUid: String,
         friendRequest: FirebaseFriendRequest,
         targetFriendRequest: FirebaseFriendRequest,
-    ): Result<Transaction> {
-        return runCatching {
-            fireStore.runTransaction { transaction ->
-                transaction.set(
-                    getFriendRequestDoc(uid, targetUid),
-                    friendRequest
-                )
+    ) {
+        fireStore.runTransaction { transaction ->
+            transaction.set(
+                getFriendRequestDoc(uid, targetUid),
+                friendRequest
+            )
 
-                transaction.set(
-                    getFriendRequestDoc(targetUid, uid),
-                    targetFriendRequest
-                )
-            }.await()
-        }
+            transaction.set(
+                getFriendRequestDoc(targetUid, uid),
+                targetFriendRequest
+            )
+        }.await()
     }
 
     suspend fun deleteTransactionFriendRequest(
         uid: String,
         targetUid: String,
-    ): Result<Transaction> {
-        return runCatching {
-            fireStore.runTransaction { transaction ->
-                transaction.delete(
-                    fireStore.collection(USER).document(uid).collection(FRIEND_REQUESTS)
-                        .document(targetUid)
-                )
+    ) {
+        fireStore.runTransaction { transaction ->
+            transaction.delete(
+                fireStore.collection(USER).document(uid).collection(FRIEND_REQUESTS)
+                    .document(targetUid)
+            )
 
-                transaction.delete(
-                    fireStore.collection(USER).document(targetUid).collection(FRIEND_REQUESTS)
-                        .document(uid)
-                )
-            }.await()
-        }
+            transaction.delete(
+                fireStore.collection(USER).document(targetUid).collection(FRIEND_REQUESTS)
+                    .document(uid)
+            )
+        }.await()
     }
 
     suspend fun acceptTransactionFriendRequest(
@@ -177,32 +163,30 @@ class FirebaseDataSource @Inject constructor(
         targetUid: String,
         uidFriendData: FirebaseFriend,
         targetUidFriendData: FirebaseFriend,
-    ): Result<Transaction> {
-        return runCatching {
-            fireStore.runTransaction { transaction ->
-                transaction.set(
-                    fireStore.collection(USER).document(uid).collection(FRIENDS)
-                        .document(targetUid),
-                    uidFriendData
-                )
+    ) {
+        fireStore.runTransaction { transaction ->
+            transaction.set(
+                fireStore.collection(USER).document(uid).collection(FRIENDS)
+                    .document(targetUid),
+                uidFriendData
+            )
 
-                transaction.set(
-                    fireStore.collection(USER).document(targetUid).collection(FRIENDS)
-                        .document(uid),
-                    targetUidFriendData
-                )
+            transaction.set(
+                fireStore.collection(USER).document(targetUid).collection(FRIENDS)
+                    .document(uid),
+                targetUidFriendData
+            )
 
-                transaction.delete(
-                    fireStore.collection(USER).document(uid).collection(FRIEND_REQUESTS)
-                        .document(targetUid)
-                )
+            transaction.delete(
+                fireStore.collection(USER).document(uid).collection(FRIEND_REQUESTS)
+                    .document(targetUid)
+            )
 
-                transaction.delete(
-                    fireStore.collection(USER).document(targetUid).collection(FRIEND_REQUESTS)
-                        .document(uid)
-                )
-            }.await()
-        }
+            transaction.delete(
+                fireStore.collection(USER).document(targetUid).collection(FRIEND_REQUESTS)
+                    .document(uid)
+            )
+        }.await()
     }
 
     fun searchUsers(query: String): Query {
