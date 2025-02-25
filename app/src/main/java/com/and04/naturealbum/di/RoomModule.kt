@@ -1,6 +1,7 @@
 package com.and04.naturealbum.di
 
 import android.content.Context
+import com.and04.naturealbum.data.datasource.local.LabelDataSource
 import com.and04.naturealbum.data.localdata.room.AlbumDao
 import com.and04.naturealbum.data.localdata.room.AppDatabase
 import com.and04.naturealbum.data.localdata.room.LabelDao
@@ -50,6 +51,18 @@ object RoomModule {
 
     @Singleton
     @Provides
+    fun providerLabelDataSource(
+        labelDao: LabelDao
+    ) = LabelDataSource(labelDao)
+
+    @Singleton
+    @Provides
+    fun providerLabelRepo(
+        labelDataSource: LabelDataSource
+    ): LabelRepository = LabelRepositoryImpl(labelDataSource)
+
+    @Singleton
+    @Provides
     fun providerRepository(
         albumDao: AlbumDao,
         photoDetailDao: PhotoDetailDao
@@ -69,9 +82,4 @@ object RoomModule {
         albumDao: AlbumDao,
     ): LocalAlbumRepository = LocalAlbumRepositoryImpl(albumDao)
 
-    @Singleton
-    @Provides
-    fun providerLabelRepo(
-        labelDao: LabelDao
-    ): LabelRepository = LabelRepositoryImpl(labelDao)
 }
