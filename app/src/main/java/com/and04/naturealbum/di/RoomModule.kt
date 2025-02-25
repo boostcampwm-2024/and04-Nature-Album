@@ -3,6 +3,7 @@ package com.and04.naturealbum.di
 import android.content.Context
 import com.and04.naturealbum.data.datasource.local.AlbumDataSource
 import com.and04.naturealbum.data.datasource.local.LabelDataSource
+import com.and04.naturealbum.data.datasource.local.PhotoDetailDataSource
 import com.and04.naturealbum.data.localdata.room.AlbumDao
 import com.and04.naturealbum.data.localdata.room.AppDatabase
 import com.and04.naturealbum.data.localdata.room.LabelDao
@@ -64,10 +65,16 @@ object RoomModule {
 
     @Singleton
     @Provides
-    fun providerRepository(
-        albumDao: AlbumDao,
+    fun providerPhotoDetailDataSource(
         photoDetailDao: PhotoDetailDao
-    ): PhotoDetailRepository = PhotoDetailRepositoryImpl(albumDao, photoDetailDao)
+    ) = PhotoDetailDataSource(photoDetailDao)
+
+    @Singleton
+    @Provides
+    fun providerPhotoDetailRepository(
+        albumDataSource: AlbumDataSource,
+        photoDetailDataSource: PhotoDetailDataSource,
+    ): PhotoDetailRepository = PhotoDetailRepositoryImpl(albumDataSource, photoDetailDataSource)
 
     @Singleton
     @Provides
