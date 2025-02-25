@@ -14,7 +14,7 @@ class UserRepository @Inject constructor(
         displayName: String?,
         email: String,
         photoUrl: String?,
-    ): Boolean {
+    ): Result<Unit> {
         return runCatching {
             val userDoc = firebaseDataSource.getUser(uid)
             if (!userDoc.exists()) {
@@ -26,10 +26,10 @@ class UserRepository @Inject constructor(
                 )
                 firebaseDataSource.setUser(uid, firestoreUser)
             }
-        }.isSuccess
+        }
     }
 
-    suspend fun saveFcmToken(uid: String, token: String): Boolean {
-        return firebaseDataSource.updateUser(uid, token).isSuccess
+    suspend fun saveFcmToken(uid: String, token: String): Result<Unit> {
+        return runCatching { firebaseDataSource.updateUser(uid, token) }
     }
 }
