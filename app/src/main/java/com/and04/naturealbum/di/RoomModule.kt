@@ -79,10 +79,10 @@ object RoomModule {
     @Singleton
     @Provides
     fun providerSyncRepo(
-        labelDao: LabelDao,
-        albumDao: AlbumDao,
-        photoDetailDao: PhotoDetailDao
-    ): SyncRepository = SyncRepositoryImpl(labelDao, albumDao, photoDetailDao)
+        labelDataSource: LabelDataSource,
+        albumDataSource: AlbumDataSource,
+        photoDetailDataSource: PhotoDetailDataSource
+    ): SyncRepository = SyncRepositoryImpl(labelDataSource, albumDataSource, photoDetailDataSource)
 
     @Singleton
     @Provides

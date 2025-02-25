@@ -1,5 +1,6 @@
 package com.and04.naturealbum.data.datasource.local
 
+import com.and04.naturealbum.data.localdata.room.HazardAnalyzeStatus
 import com.and04.naturealbum.data.localdata.room.PhotoDetail
 import com.and04.naturealbum.data.localdata.room.PhotoDetailDao
 import javax.inject.Inject
@@ -33,5 +34,16 @@ class PhotoDetailDataSource @Inject constructor(
 
     suspend fun deleteImage(photoDetail: PhotoDetail) {
         photoDetailDao.deleteImage(photoDetail)
+    }
+
+    suspend fun getHazardCheckResultByFileName(fileName: String): HazardAnalyzeStatus {
+        return photoDetailDao.getHazardCheckResultByFileName(fileName)
+    }
+
+    suspend fun updateHazardCheckResultByFIleName(
+        hazardAnalyzeStatus: HazardAnalyzeStatus,
+        fileName: String,
+    ) {
+        return photoDetailDao.updateHazardCheckResultByFIleName(hazardAnalyzeStatus, fileName)
     }
 }

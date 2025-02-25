@@ -1,6 +1,8 @@
 package com.and04.naturealbum.data.datasource.local
 
 import com.and04.naturealbum.data.dto.AlbumDto
+import com.and04.naturealbum.data.dto.SyncAlbumsDto
+import com.and04.naturealbum.data.dto.SyncPhotoDetailsDto
 import com.and04.naturealbum.data.localdata.room.Album
 import com.and04.naturealbum.data.localdata.room.AlbumDao
 import kotlinx.coroutines.flow.Flow
@@ -27,5 +29,13 @@ class AlbumDataSource @Inject constructor(
 
     suspend fun insertAlbum(album: Album): Long {
         return albumDao.insertAlbum(album)
+    }
+
+    suspend fun getSyncCheckAlbums(): List<SyncAlbumsDto> {
+        return albumDao.getSyncCheckAlbums()
+    }
+
+    suspend fun getSyncCheckPhotos(): List<SyncPhotoDetailsDto> {
+        return albumDao.getSyncCheckPhotos()
     }
 }

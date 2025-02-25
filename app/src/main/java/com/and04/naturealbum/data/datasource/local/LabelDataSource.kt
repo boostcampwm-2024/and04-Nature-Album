@@ -18,4 +18,8 @@ class LabelDataSource @Inject constructor(
     suspend fun insertLabel(label: Label): Long {
         return labelDao.insertLabel(label)
     }
+
+    suspend fun getIdByName(name: String): Int? {
+        return labelDao.getIdByName(name)
+    }
 }

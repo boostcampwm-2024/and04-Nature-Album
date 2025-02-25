@@ -1,40 +1,43 @@
 package com.and04.naturealbum.data.repository.local.impl
 
+import com.and04.naturealbum.data.datasource.local.AlbumDataSource
+import com.and04.naturealbum.data.datasource.local.LabelDataSource
+import com.and04.naturealbum.data.datasource.local.PhotoDetailDataSource
 import com.and04.naturealbum.data.dto.SyncAlbumsDto
 import com.and04.naturealbum.data.dto.SyncPhotoDetailsDto
-import com.and04.naturealbum.data.localdata.room.AlbumDao
 import com.and04.naturealbum.data.localdata.room.HazardAnalyzeStatus
-import com.and04.naturealbum.data.localdata.room.LabelDao
-import com.and04.naturealbum.data.localdata.room.PhotoDetailDao
 import com.and04.naturealbum.data.repository.local.SyncRepository
 import javax.inject.Inject
 
 class SyncRepositoryImpl @Inject constructor(
-    private val labelDao: LabelDao,
-    private val albumDao: AlbumDao,
-    private val photoDetailDao: PhotoDetailDao
-): SyncRepository {
+    private val labelDataSource: LabelDataSource,
+    private val albumDataSource: AlbumDataSource,
+    private val photoDetailDataSource: PhotoDetailDataSource
+) : SyncRepository {
 
     override suspend fun getIdByName(name: String): Int? {
-        return labelDao.getIdByName(name)
+        return labelDataSource.getIdByName(name)
     }
 
     override suspend fun getSyncCheckAlbums(): List<SyncAlbumsDto> {
-        return albumDao.getSyncCheckAlbums()
+        return albumDataSource.getSyncCheckAlbums()
     }
 
     override suspend fun getSyncCheckPhotos(): List<SyncPhotoDetailsDto> {
-        return albumDao.getSyncCheckPhotos()
+        return albumDataSource.getSyncCheckPhotos()
     }
 
     override suspend fun getHazardCheckResultByFileName(fileName: String): HazardAnalyzeStatus {
-        return photoDetailDao.getHazardCheckResultByFileName(fileName)
+        return photoDetailDataSource.getHazardCheckResultByFileName(fileName)
     }
 
     override suspend fun updateHazardCheckResultByFIleName(
         hazardAnalyzeStatus: HazardAnalyzeStatus,
         fileName: String,
     ) {
-        return photoDetailDao.updateHazardCheckResultByFIleName(hazardAnalyzeStatus, fileName)
+        return photoDetailDataSource.updateHazardCheckResultByFIleName(
+            hazardAnalyzeStatus,
+            fileName
+        )
     }
 }
