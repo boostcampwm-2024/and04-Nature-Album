@@ -17,12 +17,12 @@ class TestAlbumRepoImpl: AlbumRepository {
         return Result.success(emptyList())
     }
 
-    override suspend fun getLabelsToMap(uids: List<String>): Map<String, List<FirebaseLabelResponse>> {
-        return emptyMap()
+    override suspend fun getLabelsToMap(uids: List<String>): Result<Map<String, List<FirebaseLabelResponse>>> {
+        return runCatching { emptyMap() }
     }
 
-    override suspend fun getPhotos(uids: List<String>): Map<String, List<FirebasePhotoInfoResponse>> {
-        return emptyMap()
+    override suspend fun getPhotos(uids: List<String>): Result<Map<String, List<FirebasePhotoInfoResponse>>> {
+        return runCatching { emptyMap() }
     }
 
     override suspend fun saveImageFile(
@@ -30,24 +30,24 @@ class TestAlbumRepoImpl: AlbumRepository {
         label: String,
         fileName: String,
         uri: Uri
-    ): Uri {
-        return "".toUri()
+    ): Result<Uri> {
+        return runCatching { "".toUri() }
     }
 
     override suspend fun insertLabel(
         uid: String,
         labelName: String,
         labelData: FirebaseLabel
-    ): Boolean {
-        return true
+    ): Result<Unit> {
+        return runCatching { }
     }
 
     override suspend fun insertPhotoInfo(
         uid: String,
         fileName: String,
         photoData: FirebasePhotoInfo
-    ): Boolean {
-        return true
+    ): Result<Unit> {
+        return runCatching { }
     }
 
     override suspend fun deleteImageFile(uid: String, label: Label, fileName: String): Boolean {

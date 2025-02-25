@@ -70,13 +70,11 @@ class FirebaseDataSource @Inject constructor(
             .await()
     }
 
-    suspend fun getUserPhotos(uid: String): Result<QuerySnapshot> {
-        return runCatching {
-            fireStore.collection(USER).document(uid)
-                .collection(PHOTOS)
-                .get()
-                .await()
-        }
+    suspend fun getUserPhotos(uid: String): QuerySnapshot {
+        return fireStore.collection(USER).document(uid)
+            .collection(PHOTOS)
+            .get()
+            .await()
     }
 
     suspend fun getPhotoInfo(uid: String, fileName: String): DocumentSnapshot {
