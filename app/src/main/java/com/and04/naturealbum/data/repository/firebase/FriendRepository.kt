@@ -21,70 +21,81 @@ class FriendRepository @Inject constructor(
     private val firebaseDataSource: FirebaseDataSource
 ) {
     // 친구 요청 보냈을 경우
-    suspend fun sendFriendRequest(uid: String, targetUid: String): Boolean {
-        val requestTime = LocalDateTime.now().toString()
+    suspend fun sendFriendRequest(uid: String, targetUid: String): Result<Unit> {
+        return runCatching {
+            val requestTime = LocalDateTime.now().toString()
 
-        val currentUserSnapshot = firebaseDataSource.getUser(uid)
-        val targetUserSnapshot = firebaseDataSource.getUser(targetUid)
+            val currentUserSnapshot = firebaseDataSource.getUser(uid)
+            val targetUserSnapshot = firebaseDataSource.getUser(targetUid)
 
-        if (!currentUserSnapshot.exists() || !targetUserSnapshot.exists()) return false
+            if (!currentUserSnapshot.exists() || !targetUserSnapshot.exists()) noUserException()
 
-        val currentUser =
-            currentUserSnapshot.toObject(FirestoreUser::class.java)?.copy(uid = uid)
-                ?: return false
-        val targetUser =
-            targetUserSnapshot.toObject(FirestoreUser::class.java)?.copy(uid = targetUid)
-                ?: return false
+            val currentUser =
+                currentUserSnapshot.toObject(FirestoreUser::class.java)?.copy(uid = uid)
+                    ?: noUserException()
+            val targetUser =
+                targetUserSnapshot.toObject(FirestoreUser::class.java)?.copy(uid = targetUid)
+                    ?: noUserException()
 
-        // 친구 요청 데이터 생성
-        val friendRequest = FirebaseFriendRequest(
-            user = targetUser,
-            requestedAt = requestTime,
-            status = FriendStatus.SENT
-        )
-        val targetFriendRequest = FirebaseFriendRequest(
-            user = currentUser,
-            requestedAt = requestTime,
-            status = FriendStatus.RECEIVED
-        )
+            // 친구 요청 데이터 생성
+            val friendRequest = FirebaseFriendRequest(
+                user = targetUser as FirestoreUser,
+                requestedAt = requestTime,
+                status = FriendStatus.SENT
+            )
+            val targetFriendRequest = FirebaseFriendRequest(
+                user = currentUser as FirestoreUser,
+                requestedAt = requestTime,
+                status = FriendStatus.RECEIVED
+            )
 
-        // Firestore 트랜잭션으로 요청 저장
-        return firebaseDataSource
-            .setTransactionFriendRequest(
-                uid,
-                targetUid,
-                friendRequest,
-                targetFriendRequest
-            ).isSuccess
+            // Firestore 트랜잭션으로 요청 저장
+            firebaseDataSource
+                .setTransactionFriendRequest(
+                    uid,
+                    targetUid,
+                    friendRequest,
+                    targetFriendRequest
+                )
+        }
     }
 
 
     // 수락했을 경우
-    suspend fun acceptFriendRequest(uid: String, targetUid: String): Boolean {
-        val addedTime = LocalDateTime.now().toString() // 문자열로 변환
+    suspend fun acceptFriendRequest(uid: String, targetUid: String): Result<Unit> {
+        return runCatching {
+            val addedTime = LocalDateTime.now().toString() // 문자열로 변환
 
-        // 요청자와 대상자의 사용자 정보 가져오기
-        val currentUser = firebaseDataSource.getUser(uid)
-            .toObject(FirestoreUser::class.java) ?: return false
-        val targetUser = firebaseDataSource.getUser(targetUid)
-            .toObject(FirestoreUser::class.java) ?: return false
+            // 요청자와 대상자의 사용자 정보 가져오기
+            val currentUser = firebaseDataSource.getUser(uid)
+                .toObject(FirestoreUser::class.java) ?: noUserException()
+            val targetUser = firebaseDataSource.getUser(targetUid)
+                .toObject(FirestoreUser::class.java) ?: noUserException()
 
-        // FirebaseFriend 데이터 생성
-        val uidFriendData = FirebaseFriend(user = targetUser, addedAt = addedTime)
-        val targetUidFriendData = FirebaseFriend(user = currentUser, addedAt = addedTime)
+            // FirebaseFriend 데이터 생성
+            val uidFriendData =
+                FirebaseFriend(user = targetUser as FirestoreUser, addedAt = addedTime)
+            val targetUidFriendData =
+                FirebaseFriend(user = currentUser as FirestoreUser, addedAt = addedTime)
 
-        return firebaseDataSource
-            .acceptTransactionFriendRequest(
-                uid,
-                targetUid,
-                uidFriendData,
-                targetUidFriendData
-            ).isSuccess
+            firebaseDataSource
+                .acceptTransactionFriendRequest(
+                    uid,
+                    targetUid,
+                    uidFriendData,
+                    targetUidFriendData
+                )
+        }
     }
 
     // 거절했을 경우
-    suspend fun rejectFriendRequest(uid: String, targetUid: String): Boolean {
-        return firebaseDataSource.deleteTransactionFriendRequest(uid, targetUid).isSuccess
+    suspend fun rejectFriendRequest(uid: String, targetUid: String): Result<Unit> {
+        return runCatching {
+            firebaseDataSource.deleteTransactionFriendRequest(
+                uid,
+                targetUid
+            )
+        }
     }
 
     // 검색했을 경우
@@ -218,4 +229,12 @@ class FriendRepository @Inject constructor(
 
             awaitClose { listener.remove() }
         }
+
+    companion object {
+        private const val NO_USER_EXCEPTION = "We can't find User"
+
+        private fun noUserException() {
+            throw Exception(NO_USER_EXCEPTION)
+        }
+    }
 }
