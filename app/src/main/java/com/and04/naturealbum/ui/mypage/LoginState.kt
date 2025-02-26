@@ -9,4 +9,6 @@ sealed interface LoginState {
     ) : LoginState
 
     data object Logout : LoginState
+
+    data object LoginLoading: LoginState
 }

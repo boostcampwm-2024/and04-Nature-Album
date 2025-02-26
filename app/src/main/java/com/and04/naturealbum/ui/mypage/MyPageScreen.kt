@@ -102,7 +102,6 @@ fun MyPageScreen(
     val receivedFriendRequests =
         friendViewModel.receivedFriendRequests.collectAsStateWithLifecycle()
     val recentSyncTime = myPageViewModel.recentSyncTime.collectAsStateWithLifecycle()
-    val progressState = myPageViewModel.progressState.collectAsStateWithLifecycle()
     val syncWorking = myPageViewModel.syncWorking.collectAsStateWithLifecycle()
 
     MyPageScreenContent(
@@ -117,8 +116,6 @@ fun MyPageScreen(
         recentSyncTime = recentSyncTime,
         networkState = networkState,
         initializeFriendViewModel = friendViewModel::initialize,
-        progressState = progressState,
-        setProgressState = myPageViewModel::setProgressState,
         syncWorking = syncWorking,
         startSync = myPageViewModel::startSync
     )
@@ -137,8 +134,6 @@ fun MyPageScreenContent(
     recentSyncTime: State<String>,
     networkState: State<Int>,
     initializeFriendViewModel: (String) -> Unit,
-    progressState: State<Boolean>,
-    setProgressState: (Boolean) -> Unit,
     syncWorking: State<Boolean>,
     startSync: () -> Unit,
 ) {
@@ -170,8 +165,6 @@ fun MyPageScreenContent(
             snackBarHostState = snackBarHostState,
             networkState = networkState,
             initializeFriendViewModel = initializeFriendViewModel,
-            progressState = progressState,
-            setProgressState = setProgressState,
             syncWorking = syncWorking,
             startSync = startSync
         )
@@ -192,8 +185,6 @@ private fun MyPageContent(
     snackBarHostState: SnackbarHostState,
     networkState: State<Int>,
     initializeFriendViewModel: (String) -> Unit,
-    progressState: State<Boolean>,
-    setProgressState: (Boolean) -> Unit,
     syncWorking: State<Boolean>,
     startSync: () -> Unit,
 ) {
@@ -256,9 +247,9 @@ private fun MyPageContent(
                 }
             }
 
-            is LoginState.Logout-> {
+            is LoginState.Logout, LoginState.LoginLoading -> {
                 Box {
-                    ProgressIndicator(progressState.value)
+                    ProgressIndicator(success is LoginState.LoginLoading)
                 }
                 Column(
                     modifier = modifier,
@@ -267,8 +258,6 @@ private fun MyPageContent(
                 ) {
                     UserProfileContent()
                     LoginContent(
-                        progressState = progressState,
-                        setProgressState = setProgressState,
                     ) { signInWithGoogle(context) }
                 }
             }
@@ -367,8 +356,6 @@ private fun UserProfileImage(uri: String?, modifier: Modifier) {
 
 @Composable
 private fun LoginContent(
-    progressState: State<Boolean>,
-    setProgressState: (Boolean) -> Unit,
     loginHandle: () -> Unit,
 ) {
     Column(
@@ -402,7 +389,6 @@ private fun LoginContent(
                             .show()
                     } else {
                         loginHandle()
-                        setProgressState(true)
                     }
                 }
         ) {

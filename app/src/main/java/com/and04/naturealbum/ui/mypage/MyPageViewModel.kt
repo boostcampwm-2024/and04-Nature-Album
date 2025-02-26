@@ -28,9 +28,6 @@ class MyPageViewModel @Inject constructor(
     private val _loginState = MutableStateFlow(setInitUiState())
     val loginState: StateFlow<LoginState> = _loginState
 
-    private val _progressState = MutableStateFlow(false)
-    val progressState: StateFlow<Boolean> = _progressState
-
     val recentSyncTime: StateFlow<String> = syncDataStore.syncTime.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -55,6 +52,7 @@ class MyPageViewModel @Inject constructor(
     }
 
     fun signInWithGoogle(context: Context) {
+        _loginState.value = LoginState.LoginLoading
         authenticationManager.signInWithGoogle(context).onEach { response ->
             when (response) {
                 is AuthResponse.Success -> {
@@ -62,16 +60,11 @@ class MyPageViewModel @Inject constructor(
                         getUserInfoUiState()
                     )
                 }
+                is AuthResponse.Error -> {
+                    _loginState.value = LoginState.Logout
+                }
             }
-            //닫혔을 때
-            _progressState.value = false
         }.launchIn(viewModelScope)
-        //열렸을 때
-        _progressState.value = true
-    }
-
-    fun setProgressState(state: Boolean) {
-        _progressState.value = state
     }
 
     private fun getUserInfoUiState(): LoginState {
