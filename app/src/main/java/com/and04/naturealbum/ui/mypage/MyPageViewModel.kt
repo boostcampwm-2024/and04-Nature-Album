@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.and04.naturealbum.background.workmanager.SynchronizationWorker
 import com.and04.naturealbum.data.localdata.datastore.DataStoreManager
 import com.and04.naturealbum.data.localdata.datastore.DataStoreManager.Companion.NEVER_SYNC
-import com.and04.naturealbum.ui.utils.UiState
 import com.and04.naturealbum.data.model.UserInfo
 import com.and04.naturealbum.ui.utils.UserManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,8 +25,8 @@ class MyPageViewModel @Inject constructor(
     private val userManager: UserManager,
     private val syncDataStore: DataStoreManager,
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(setInitUiState())
-    val uiState: StateFlow<UiState<UserInfo>> = _uiState
+    private val _loginState = MutableStateFlow(setInitUiState())
+    val loginState: StateFlow<LoginState> = _loginState
 
     private val _progressState = MutableStateFlow(false)
     val progressState: StateFlow<Boolean> = _progressState
@@ -59,7 +58,7 @@ class MyPageViewModel @Inject constructor(
         authenticationManager.signInWithGoogle(context).onEach { response ->
             when (response) {
                 is AuthResponse.Success -> {
-                    _uiState.emit(
+                    _loginState.emit(
                         getUserInfoUiState()
                     )
                 }
@@ -75,9 +74,9 @@ class MyPageViewModel @Inject constructor(
         _progressState.value = state
     }
 
-    private fun getUserInfoUiState(): UiState.Success<UserInfo> {
+    private fun getUserInfoUiState(): LoginState {
         val user = UserManager.getUser()
-        return UiState.Success(
+        return LoginState.Login(
             UserInfo(
                 userEmail = user?.email,
                 userPhotoUri = user?.photoUrl.toString(),
@@ -87,11 +86,11 @@ class MyPageViewModel @Inject constructor(
         )
     }
 
-    private fun setInitUiState(): UiState<UserInfo> {
+    private fun setInitUiState(): LoginState {
         return if (userManager.isSignIn()) {
             getUserInfoUiState()
         } else {
-            UiState.Idle
+            LoginState.Logout
         }
     }
 }
