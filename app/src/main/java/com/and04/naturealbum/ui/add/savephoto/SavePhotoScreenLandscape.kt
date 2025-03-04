@@ -32,7 +32,7 @@ import java.time.ZoneId
 @Composable
 fun SavePhotoScreenLandscape(
     innerPadding: PaddingValues,
-    model: Uri,
+    uri: Uri,
     fileName: String,
     label: Label?,
     location: Location,
@@ -55,7 +55,7 @@ fun SavePhotoScreenLandscape(
         ) {
             AsyncImage(
                 model = ImageRequest.Builder(context)
-                    .data(model)
+                    .data(uri)
                     .crossfade(true)
                     .build(),
                 contentDescription = stringResource(R.string.save_photo_screen_image_description),
@@ -109,7 +109,7 @@ fun SavePhotoScreenLandscape(
                     onClick = {
                         val time = LocalDateTime.now(ZoneId.of("UTC"))
                         savePhoto(
-                            model.toString(),
+                            uri.toString(),
                             fileName,
                             label!!,
                             location,
@@ -120,7 +120,7 @@ fun SavePhotoScreenLandscape(
 
                         insertFirebaseService(
                             context = context,
-                            model = model,
+                            uri = uri,
                             fileName = fileName,
                             label = label,
                             location = location,

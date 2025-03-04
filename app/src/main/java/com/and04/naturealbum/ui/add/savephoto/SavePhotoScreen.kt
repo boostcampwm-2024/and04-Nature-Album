@@ -88,7 +88,7 @@ import java.time.format.DateTimeFormatter
 fun SavePhotoScreen(
     locationHandler: LocationHandler,
     location: Location?,
-    model: Uri,
+    uri: Uri,
     fileName: String,
     onBack: () -> Unit,
     onSave: () -> Unit,
@@ -108,7 +108,7 @@ fun SavePhotoScreen(
 
     //TODO 시연용
 //    if (uiState.value is UiState.Idle && NetworkState.getNetWorkCode() != DISCONNECTED) {
-//        val bitmap = loadImageFromUri(context, model)
+//        val bitmap = loadImageFromUri(context, uri)
 //        viewModel.getGeneratedContent(bitmap)
 //    }
 
@@ -140,7 +140,7 @@ fun SavePhotoScreen(
     }
 
     SavePhotoScreen(
-        model = model,
+        uri = uri,
         fileName = fileName,
         location = newLocation,
         photoSaveState = photoSaveState,
@@ -164,7 +164,7 @@ fun SavePhotoScreen(
 
 @Composable
 fun SavePhotoScreen(
-    model: Uri,
+    uri: Uri,
     fileName: String,
     location: State<Location?>,
     rememberDescription: State<String>,
@@ -200,7 +200,7 @@ fun SavePhotoScreen(
             if (context.isPortrait()) {
                 SavePhotoScreenPortrait(
                     innerPadding = innerPadding,
-                    model = model,
+                    uri = uri,
                     fileName = fileName,
                     label = label,
                     location = location.value!!,
@@ -216,7 +216,7 @@ fun SavePhotoScreen(
             } else {
                 SavePhotoScreenLandscape(
                     innerPadding = innerPadding,
-                    model = model,
+                    uri = uri,
                     fileName = fileName,
                     label = label,
                     location = location.value!!,
@@ -393,7 +393,7 @@ private fun loadImageFromUri(context: Context, uri: Uri): Bitmap? {
 
 fun insertFirebaseService(
     context: Context,
-    model: Uri,
+    uri: Uri,
     fileName: String,
     label: Label,
     location: Location,
@@ -403,7 +403,7 @@ fun insertFirebaseService(
     if (Firebase.auth.currentUser == null || NetworkState.getNetWorkCode() == DISCONNECTED) return
     val newTime = time.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
     val intent = Intent(context, FirebaseInsertService::class.java).apply {
-        putExtra(SERVICE_URI, model.toString())
+        putExtra(SERVICE_URI, uri.toString())
         putExtra(SERVICE_FILENAME, fileName)
         putExtra(SERVICE_LABEL, label)
         putExtra(SERVICE_LOCATION_LATITUDE, location.latitude)
@@ -426,7 +426,7 @@ private fun ScreenPreview() {
         val location = rememberSaveable { mutableStateOf(null) }
 
         SavePhotoScreen(
-            model = "".toUri(),
+            uri = "".toUri(),
             location = location,
             fileName = "fileName.jpg",
             rememberDescription = rememberDescription,

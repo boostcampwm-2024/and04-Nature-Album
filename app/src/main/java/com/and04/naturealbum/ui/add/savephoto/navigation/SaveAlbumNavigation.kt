@@ -24,7 +24,7 @@ fun NavGraphBuilder.saveAlbumNavGraph(
         SavePhotoScreen(
             locationHandler = state.locationHandler.value,
             location = state.lastLocation.value,
-            model = state.imageUri.value,
+            uri = state.imageUri.value,
             fileName = state.fileName.value,
             onBack = { state.takePicture(takePictureLauncher) },
             onSave = {
