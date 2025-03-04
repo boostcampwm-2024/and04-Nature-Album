@@ -10,3 +10,4 @@
 local.properties
 .kotlin/
 google-service.json
+app/src/main/assets/test/
