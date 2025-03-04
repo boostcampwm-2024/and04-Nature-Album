@@ -1,27 +1,26 @@
 package com.and04.naturealbum.ui.add.savephoto
 
+import android.content.Context
 import android.content.res.AssetFileDescriptor
-import android.content.res.AssetManager
 import android.graphics.Bitmap
-import org.json.JSONObject
 import org.tensorflow.lite.Interpreter
-import java.io.BufferedReader
-import java.io.InputStreamReader
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.MappedByteBuffer
 import java.nio.channels.FileChannel
 
-class ImageClassifier(private val assetManager: AssetManager) {
+class ImageClassifier(private val context: Context) {
     private var interpreter: Interpreter
     private val labels: Map<Int, String>
 
     init {
         interpreter = Interpreter(loadModelFile())
-        labels = loadLabels()
+        LabelLoader.loadLabels(context)
+        labels = LabelLoader.getLabels()
     }
 
     private fun loadModelFile(): MappedByteBuffer {
+        val assetManager = context.assets
         val fileDescriptor: AssetFileDescriptor = assetManager.openFd(MODEL_PATH)
         val inputStream = fileDescriptor.createInputStream()
         val fileChannel = inputStream.channel
@@ -30,18 +29,6 @@ class ImageClassifier(private val assetManager: AssetManager) {
             fileDescriptor.startOffset,
             fileDescriptor.declaredLength
         )
-    }
-
-    fun loadLabels(): Map<Int, String> {
-        val labelsMap = mutableMapOf<Int, String>()
-        val inputStream = assetManager.open(LABEL_PATH)
-        val jsonText = BufferedReader(InputStreamReader(inputStream)).use { it.readText() }
-        val jsonObject = JSONObject(jsonText)
-
-        jsonObject.keys().forEach { key ->
-            labelsMap[key.toInt()] = jsonObject.getString(key)
-        }
-        return labelsMap
     }
 
     fun classify(bitmap: Bitmap): String {
@@ -73,7 +60,6 @@ class ImageClassifier(private val assetManager: AssetManager) {
 
     companion object {
         private const val MODEL_PATH = "mobilenet_v3_small.tflite"
-        private const val LABEL_PATH = "imageNetLabels.json"
         private const val UNKNOWN_LABEL = "알 수 없음"
         private const val IMAGE_SIZE = 224
         private const val OUTPUT_CLASSES = 1000
