@@ -18,13 +18,16 @@ class ImageClassifierTest {
     @Before
     fun setUp() {
         context = InstrumentationRegistry.getInstrumentation().targetContext
-        classifier = ImageClassifier(context.assets)
 
-        val labels = classifier.loadLabels()
-        assertNotNull(labels)
-        assertTrue(labels.isNotEmpty())
+        LabelLoader.loadLabels(context)
+        val labels = LabelLoader.getLabels()
+
+        assertNotNull("라벨 로드 실패", labels)
+        assertTrue("라벨이 비어 있음", labels.isNotEmpty())
 
         Log.d("ImageClassifierTest", "라벨 JSON 로드 완료: ${labels.size}개 라벨")
+
+        classifier = ImageClassifier(context)
     }
 
     @Test
