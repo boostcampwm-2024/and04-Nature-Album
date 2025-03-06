@@ -22,7 +22,10 @@ object ImageConvert {
     private const val COMPRESS_QUALITY = 80
     private const val IN_SAMPLE_SIZE = 16
 
-    fun resizeImage(uri: Uri): ResizePicture? {
+    fun resizeImage(
+        uri: Uri,
+        changeFile: (File) -> Unit,
+    ): ResizePicture? {
         try {
             val context = NatureAlbum.getInstance()
             val storage = context.filesDir
@@ -44,6 +47,8 @@ object ImageConvert {
 
                 fos.flush()
             }
+
+            changeFile(imageFile)
 
             return ResizePicture(
                 fileName = fileName,

@@ -40,8 +40,11 @@ class NatureAlbumState(
         navigator: NatureAlbumNavigator
     ) {
         if (result.resultCode == RESULT_OK) {
-            val resizePicture = ImageConvert.resizeImage(imageUri.value)!!
-            imageFile.value?.delete()
+            val resizePicture = ImageConvert.resizeImage(imageUri.value) { file ->
+                imageFile.value?.delete()
+                imageFile.value = file
+            }!!
+
             imageUri.value = resizePicture.uri
             fileName.value = resizePicture.fileName
 
@@ -74,6 +77,10 @@ class NatureAlbumState(
                 // TODO: 카메라 전환 오류 처리
             }
         }
+    }
+
+    fun deleteFilePhoto() {
+        imageFile.value?.delete()
     }
 }
 
