@@ -59,7 +59,6 @@ class NatureAlbumState(
     }
 
     fun takePicture(launcher: ManagedActivityResultLauncher<Intent, ActivityResult>) {
-        // TODO: imageUri가 EMPTY가 아닐때 해당 파일 삭제
         fileName.value = "temp_${System.currentTimeMillis()}.jpg"
         imageFile.value = File(context.filesDir, fileName.value)
         imageUri.value =
