@@ -31,30 +31,22 @@ object ImageConvert {
         imageFile.createNewFile()
 
         FileOutputStream(imageFile).use { fos ->
-            if (external) {
-                BitmapFactory.decodeStream(URL(photoUri).openStream()).apply {
-                    if (Build.VERSION.SDK_INT >= 30) {
-                        compress(Bitmap.CompressFormat.WEBP_LOSSY, COMPRESS_QUALITY, fos)
-                    } else {
-                        compress(Bitmap.CompressFormat.JPEG, COMPRESS_QUALITY, fos)
-                    }
-
-                    recycle()
+            BitmapFactory.decodeStream(
+                if (external) {
+                    URL(photoUri).openStream()
+                } else {
+                    BufferedInputStream(
+                        context.contentResolver.openInputStream(photoUri.toUri())
+                    )
                 }
-            } else {
-                val bufferedInputStream = BufferedInputStream(
-                    context.contentResolver.openInputStream(photoUri.toUri())
-                )
+            ).apply {
+                if (Build.VERSION.SDK_INT >= 30) {
+                    compress(Bitmap.CompressFormat.WEBP_LOSSY, COMPRESS_QUALITY, fos)
+                } else {
+                    compress(Bitmap.CompressFormat.JPEG, COMPRESS_QUALITY, fos)
+                }
 
-                BitmapFactory.decodeStream(bufferedInputStream).apply {
-                    if (Build.VERSION.SDK_INT >= 30) {
-                        compress(Bitmap.CompressFormat.WEBP_LOSSY, COMPRESS_QUALITY, fos)
-                    } else {
-                        compress(Bitmap.CompressFormat.JPEG, COMPRESS_QUALITY, fos)
-                    }
-
-                    recycle()
-                } ?: throw NullPointerException()
+                recycle()
             }
 
             fos.flush()
