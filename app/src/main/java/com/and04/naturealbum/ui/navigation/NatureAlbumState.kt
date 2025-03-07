@@ -30,9 +30,8 @@ class NatureAlbumState(
     var lastLocation = mutableStateOf<Location?>(null)
     var locationHandler = mutableStateOf(LocationHandler(context))
     var imageUri = mutableStateOf(Uri.EMPTY)
-    var fileName = mutableStateOf("")
     var selectedLabel = mutableStateOf<Label?>(null)
-    private var imageFile = mutableStateOf<File?>(null)
+    private var imageCache = mutableStateOf<File?>(null)
     var currentUid = mutableStateOf("")
 
     fun handleLauncher(
@@ -40,13 +39,11 @@ class NatureAlbumState(
         navigator: NatureAlbumNavigator
     ) {
         if (result.resultCode == RESULT_OK) {
-            val resizePicture = ImageConvert.resizeImage(imageUri.value) { file ->
-                imageFile.value?.delete()
-                imageFile.value = file
-            }!!
-
-            imageUri.value = resizePicture.uri
-            fileName.value = resizePicture.fileName
+            ImageConvert.resizeImage(imageUri.value) { file, uri ->
+                imageCache.value?.delete()
+                imageCache.value = file
+                imageUri.value = uri
+            }
 
             locationHandler.value.getLocation { location -> lastLocation.value = location }
 
@@ -59,13 +56,13 @@ class NatureAlbumState(
     }
 
     fun takePicture(launcher: ManagedActivityResultLauncher<Intent, ActivityResult>) {
-        fileName.value = "temp_${System.currentTimeMillis()}.jpg"
-        imageFile.value = File(context.filesDir, fileName.value)
+        val fileName = "temp_${System.currentTimeMillis()}"
+        imageCache.value = File.createTempFile(fileName, ".jpg", context.cacheDir)
         imageUri.value =
             FileProvider.getUriForFile(
                 context,
                 "${context.packageName}.fileprovider",
-                imageFile.value!!
+                imageCache.value!!
             )
 
         Intent(MediaStore.ACTION_IMAGE_CAPTURE).apply {
@@ -78,8 +75,8 @@ class NatureAlbumState(
         }
     }
 
-    fun deleteFilePhoto() {
-        imageFile.value?.delete()
+    fun deleteCachePhoto() {
+        imageCache.value?.delete()
     }
 }
 
@@ -91,7 +88,6 @@ fun rememberNatureAlbumState(
         save = { state ->
             mapOf(
                 "imageUri" to state.imageUri.value.toString(),
-                "fileName" to state.fileName.value,
                 "lastLocation" to state.lastLocation.value,
             )
         },
@@ -100,7 +96,6 @@ fun rememberNatureAlbumState(
                 context = context,
             ).apply {
                 imageUri.value = Uri.parse(restoredMap["imageUri"] as String)
-                fileName.value = restoredMap["fileName"] as String
                 lastLocation.value = restoredMap["lastLocation"] as Location?
             }
         }

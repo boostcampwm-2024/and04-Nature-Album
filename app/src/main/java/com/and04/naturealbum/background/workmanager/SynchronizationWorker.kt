@@ -268,8 +268,7 @@ class SynchronizationWorker @AssistedInject constructor(
 
         val valueList = fileNameToLabelUid.values.toList()
         val findAlbumData = valueList.find { value -> value.second == photo.fileName }
-        val uri = makeFileToUri(photo.uri, photo.fileName)
-
+        val uri = ImageConvert.makeFileToUri(photo.uri, photo.fileName, true)
 
         val labelId = findAlbumData?.first
             ?: fileNameToLabelUid[photo.label]?.first
@@ -381,32 +380,6 @@ class SynchronizationWorker @AssistedInject constructor(
             )
             if (result) syncDataStore.removeDeletedFileName(photo.fileName)
         }
-    }
-
-    private fun makeFileToUri(photoUri: String, fileName: String): String {
-        val context = applicationContext
-        val storage = context.filesDir
-        val imageFile = File(storage, fileName)
-        imageFile.createNewFile()
-
-        FileOutputStream(imageFile).use { fos ->
-            BitmapFactory.decodeStream(URL(photoUri).openStream()).apply {
-                if (Build.VERSION.SDK_INT >= 30) {
-                    compress(Bitmap.CompressFormat.WEBP_LOSSY, 100, fos)
-                } else {
-                    compress(Bitmap.CompressFormat.JPEG, 100, fos)
-                }
-
-                recycle()
-            }
-            fos.flush()
-        }
-
-        return FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            imageFile
-        ).toString()
     }
 
     private fun isUnSyncLabel(label: SyncAlbumsDto, firebaseLabel: FirebaseLabelResponse): Boolean {

@@ -5,8 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration.UI_MODE_NIGHT_NO
 import android.content.res.Configuration.UI_MODE_NIGHT_YES
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.location.Location
 import android.net.Uri
 import androidx.activity.compose.BackHandler
@@ -80,7 +78,6 @@ import com.and04.naturealbum.utils.network.NetworkState
 import com.and04.naturealbum.utils.network.NetworkState.DISCONNECTED
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
-import java.io.IOException
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -89,7 +86,6 @@ fun SavePhotoScreen(
     locationHandler: LocationHandler,
     location: Location?,
     model: Uri,
-    fileName: String,
     onBack: () -> Unit,
     onSave: () -> Unit,
     onCancel: () -> Unit,
@@ -141,7 +137,6 @@ fun SavePhotoScreen(
 
     SavePhotoScreen(
         model = model,
-        fileName = fileName,
         location = newLocation,
         photoSaveState = photoSaveState,
         rememberDescription = rememberDescription,
@@ -165,7 +160,6 @@ fun SavePhotoScreen(
 @Composable
 fun SavePhotoScreen(
     model: Uri,
-    fileName: String,
     location: State<Location?>,
     rememberDescription: State<String>,
     onDescriptionChange: (String) -> Unit,
@@ -200,8 +194,7 @@ fun SavePhotoScreen(
             if (context.isPortrait()) {
                 SavePhotoScreenPortrait(
                     innerPadding = innerPadding,
-                    model = model,
-                    fileName = fileName,
+                    uri = model,
                     label = label,
                     location = location.value!!,
                     rememberDescription = rememberDescription,
@@ -216,8 +209,7 @@ fun SavePhotoScreen(
             } else {
                 SavePhotoScreenLandscape(
                     innerPadding = innerPadding,
-                    model = model,
-                    fileName = fileName,
+                    uri = model,
                     label = label,
                     location = location.value!!,
                     rememberDescription = rememberDescription,
@@ -381,19 +373,9 @@ fun Description(
     }
 }
 
-private fun loadImageFromUri(context: Context, uri: Uri): Bitmap? {
-    return try {
-        context.contentResolver.openInputStream(uri)?.use { inputStream ->
-            BitmapFactory.decodeStream(inputStream)
-        }
-    } catch (e: IOException) {
-        null
-    }
-}
-
 fun insertFirebaseService(
     context: Context,
-    model: Uri,
+    uri: String,
     fileName: String,
     label: Label,
     location: Location,
@@ -403,7 +385,7 @@ fun insertFirebaseService(
     if (Firebase.auth.currentUser == null || NetworkState.getNetWorkCode() == DISCONNECTED) return
     val newTime = time.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
     val intent = Intent(context, FirebaseInsertService::class.java).apply {
-        putExtra(SERVICE_URI, model.toString())
+        putExtra(SERVICE_URI, uri)
         putExtra(SERVICE_FILENAME, fileName)
         putExtra(SERVICE_LABEL, label)
         putExtra(SERVICE_LOCATION_LATITUDE, location.latitude)
@@ -428,7 +410,6 @@ private fun ScreenPreview() {
         SavePhotoScreen(
             model = "".toUri(),
             location = location,
-            fileName = "fileName.jpg",
             rememberDescription = rememberDescription,
             onDescriptionChange = { },
             isRepresented = isRepresented,
