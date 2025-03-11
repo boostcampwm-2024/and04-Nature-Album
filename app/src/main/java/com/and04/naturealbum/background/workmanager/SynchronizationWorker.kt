@@ -145,7 +145,7 @@ class SynchronizationWorker @AssistedInject constructor(
 
             val label = async {
                 val labels = albumRepository.getLabelsToList(uid).getOrThrow()
-                val allLocalLabels = syncRepository.getSyncCheckAlbums()
+                val allLocalLabels = syncRepository.getSyncCheckAlbums().sortedBy { it.labelName }
 
                 allLocalLabels.forEach { localLabel ->
                     var duplicationLabel = false
@@ -173,7 +173,7 @@ class SynchronizationWorker @AssistedInject constructor(
 
                 labels.forEach { firebaseLabel ->
                     if (
-                        !allLocalLabels.sortedBy { it.labelName }.binarySearch(target = firebaseLabel.labelName)
+                        !allLocalLabels.binarySearch(target = firebaseLabel.labelName)
                     ) {
                         val labelId = syncRepository.getIdByName(firebaseLabel.labelName)
                         if (labelId == null) {
@@ -188,11 +188,11 @@ class SynchronizationWorker @AssistedInject constructor(
 
             val photoDetail = async {
                 val allServerPhotos = albumRepository.getPhotosToList(uid).getOrThrow()
-                val allLocalPhotos = syncRepository.getSyncCheckPhotos()
+                val allLocalPhotos = syncRepository.getSyncCheckPhotos().sortedBy { it.fileName }
 
                 allLocalPhotos.forEach { photo ->
                     if (
-                        !allServerPhotos.sortedBy { it.fileName }.binarySearch(target = photo.fileName)
+                        !allServerPhotos.binarySearch(target = photo.fileName)
                     ) {
                         launch {
                             insertPhotoDetailToServer(uid, photo)
@@ -202,7 +202,7 @@ class SynchronizationWorker @AssistedInject constructor(
 
                 unSynchronizedPhotoDetailsToLocal.addAll(
                     allServerPhotos.filter { photo ->
-                        !allLocalPhotos.sortedBy { it.fileName }.binarySearch(target = photo.fileName)
+                        !allLocalPhotos.binarySearch(target = photo.fileName)
                     }
                 )
             }
