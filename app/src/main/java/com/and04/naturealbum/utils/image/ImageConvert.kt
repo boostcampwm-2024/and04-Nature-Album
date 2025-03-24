@@ -9,12 +9,14 @@ import android.os.Build
 import android.util.Base64
 import android.util.Log
 import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import androidx.exifinterface.media.ExifInterface
 import com.and04.naturealbum.NatureAlbum
 import java.io.BufferedInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.net.URL
 
 object ImageConvert {
     private const val MAX_WIDTH = 800
@@ -22,14 +24,50 @@ object ImageConvert {
     private const val COMPRESS_QUALITY = 80
     private const val IN_SAMPLE_SIZE = 16
 
-    fun resizeImage(uri: Uri): ResizePicture? {
+    fun makeFileToUri(photoUri: String, fileName: String, external: Boolean = false): String {
+        val context = NatureAlbum.getInstance()
+        val storage = context.filesDir
+        val imageFile = File(storage, fileName)
+        imageFile.createNewFile()
+
+        FileOutputStream(imageFile).use { fos ->
+            BitmapFactory.decodeStream(
+                if (external) {
+                    URL(photoUri).openStream()
+                } else {
+                    BufferedInputStream(
+                        context.contentResolver.openInputStream(photoUri.toUri())
+                    )
+                }
+            ).apply {
+                if (Build.VERSION.SDK_INT >= 30) {
+                    compress(Bitmap.CompressFormat.WEBP_LOSSY, COMPRESS_QUALITY, fos)
+                } else {
+                    compress(Bitmap.CompressFormat.JPEG, COMPRESS_QUALITY, fos)
+                }
+
+                recycle()
+            }
+
+            fos.flush()
+        }
+
+        return FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            imageFile
+        ).toString()
+    }
+
+    fun resizeImage(
+        uri: Uri,
+        changeFile: (File, Uri) -> Unit,
+    ) {
         try {
             val context = NatureAlbum.getInstance()
-            val storage = context.filesDir
-            val fileName = "${System.currentTimeMillis()}.jpg"
-
-            val imageFile = File(storage, fileName)
-            imageFile.createNewFile()
+            val storage = context.cacheDir
+            val fileName = "${System.currentTimeMillis()}"
+            val imageFile = File.createTempFile(fileName, ".jpg", storage)
 
             FileOutputStream(imageFile).use { fos ->
                 decodeBitmapFromUri(context = context, uri = uri)?.apply {
@@ -45,20 +83,17 @@ object ImageConvert {
                 fos.flush()
             }
 
-            return ResizePicture(
-                fileName = fileName,
-                uri = FileProvider.getUriForFile(
+            changeFile(
+                imageFile,
+                FileProvider.getUriForFile(
                     context,
                     "${context.packageName}.fileprovider",
                     imageFile
                 )
             )
-
         } catch (e: Exception) {
             Log.e("ImageConvert", "FileUtil - ${e.message}")
         }
-
-        return null
     }
 
     private fun decodeBitmapFromUri(context: Context, uri: Uri): Bitmap? {
@@ -153,8 +188,3 @@ object ImageConvert {
         }
     }
 }
-
-data class ResizePicture(
-    val fileName: String,
-    val uri: Uri,
-)

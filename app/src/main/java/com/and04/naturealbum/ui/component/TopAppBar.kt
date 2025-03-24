@@ -18,7 +18,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -34,6 +37,8 @@ enum class AppBarType {
 fun NatureAlbumPortraitTopAppBar(
     title: String,
     type: AppBarType,
+    actionTestTag: String = stringResource(R.string.top_bar_action_semantics_test_tag),
+    navigationTestTag: String = stringResource(R.string.top_bar_navigation_semantics_test_tag),
     navigateToBackScreen: () -> Unit,
     navigateToMyPage: () -> Unit,
 ) {
@@ -41,7 +46,10 @@ fun NatureAlbumPortraitTopAppBar(
         title = { Text(title) },
         navigationIcon = {
             if (type == AppBarType.All || type == AppBarType.Navigation) {
-                IconButton(onClick = { navigateToBackScreen() }) {
+                IconButton(
+                    modifier = Modifier.semantics { testTag = navigationTestTag },
+                    onClick = { navigateToBackScreen() }
+                ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = stringResource(R.string.my_page_arrow_back_icon_content_description)
@@ -51,7 +59,10 @@ fun NatureAlbumPortraitTopAppBar(
         },
         actions = {
             if (type == AppBarType.All || type == AppBarType.Action) {
-                MyPageNavigationIconButton(navigateToMyPage)
+                MyPageNavigationIconButton(
+                    modifier = Modifier.semantics { testTag = actionTestTag },
+                    navigateToMyPage = navigateToMyPage
+                )
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
@@ -64,6 +75,8 @@ fun NatureAlbumPortraitTopAppBar(
 fun NatureAlbumLandscapeTopAppBar(
     title: String,
     type: AppBarType,
+    actionTestTag: String = stringResource(R.string.top_bar_action_semantics_test_tag),
+    navigationTestTag: String = stringResource(R.string.top_bar_navigation_semantics_test_tag),
     navigateToBackScreen: () -> Unit,
     navigateToMyPage: () -> Unit,
 ) {
@@ -91,15 +104,24 @@ fun NatureAlbumLandscapeTopAppBar(
 
         if (type == AppBarType.All || type == AppBarType.Action) {
             Box {
-                MyPageNavigationIconButton(navigateToMyPage = navigateToMyPage)
+                MyPageNavigationIconButton(
+                    modifier = Modifier.semantics { testTag = actionTestTag },
+                    navigateToMyPage = navigateToMyPage
+                )
             }
         }
     }
 }
 
 @Composable
-private fun MyPageNavigationIconButton(navigateToMyPage: () -> Unit) {
-    IconButton(onClick = { navigateToMyPage() }) {
+private fun MyPageNavigationIconButton(
+    modifier: Modifier,
+    navigateToMyPage: () -> Unit
+) {
+    IconButton(
+        modifier = modifier,
+        onClick = { navigateToMyPage() }
+    ) {
         UserManager.getUserProfile()?.let { uri ->
             AsyncImage(
                 model = uri,

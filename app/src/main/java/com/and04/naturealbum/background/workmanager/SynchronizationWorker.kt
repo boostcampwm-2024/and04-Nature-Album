@@ -145,7 +145,7 @@ class SynchronizationWorker @AssistedInject constructor(
 
             val label = async {
                 val labels = albumRepository.getLabelsToList(uid).getOrThrow()
-                val allLocalLabels = syncRepository.getSyncCheckAlbums()
+                val allLocalLabels = syncRepository.getSyncCheckAlbums().sortedBy { it.labelName }
 
                 allLocalLabels.forEach { localLabel ->
                     var duplicationLabel = false
@@ -173,7 +173,7 @@ class SynchronizationWorker @AssistedInject constructor(
 
                 labels.forEach { firebaseLabel ->
                     if (
-                        !allLocalLabels.sortedBy { it.labelName }.binarySearch(target = firebaseLabel.labelName)
+                        !allLocalLabels.binarySearch(target = firebaseLabel.labelName)
                     ) {
                         val labelId = syncRepository.getIdByName(firebaseLabel.labelName)
                         if (labelId == null) {
@@ -188,11 +188,11 @@ class SynchronizationWorker @AssistedInject constructor(
 
             val photoDetail = async {
                 val allServerPhotos = albumRepository.getPhotosToList(uid).getOrThrow()
-                val allLocalPhotos = syncRepository.getSyncCheckPhotos()
+                val allLocalPhotos = syncRepository.getSyncCheckPhotos().sortedBy { it.fileName }
 
                 allLocalPhotos.forEach { photo ->
                     if (
-                        !allServerPhotos.sortedBy { it.fileName }.binarySearch(target = photo.fileName)
+                        !allServerPhotos.binarySearch(target = photo.fileName)
                     ) {
                         launch {
                             insertPhotoDetailToServer(uid, photo)
@@ -202,7 +202,7 @@ class SynchronizationWorker @AssistedInject constructor(
 
                 unSynchronizedPhotoDetailsToLocal.addAll(
                     allServerPhotos.filter { photo ->
-                        !allLocalPhotos.sortedBy { it.fileName }.binarySearch(target = photo.fileName)
+                        !allLocalPhotos.binarySearch(target = photo.fileName)
                     }
                 )
             }
@@ -268,8 +268,7 @@ class SynchronizationWorker @AssistedInject constructor(
 
         val valueList = fileNameToLabelUid.values.toList()
         val findAlbumData = valueList.find { value -> value.second == photo.fileName }
-        val uri = makeFileToUri(photo.uri, photo.fileName)
-
+        val uri = ImageConvert.makeFileToUri(photo.uri, photo.fileName, true)
 
         val labelId = findAlbumData?.first
             ?: fileNameToLabelUid[photo.label]?.first
@@ -381,32 +380,6 @@ class SynchronizationWorker @AssistedInject constructor(
             )
             if (result) syncDataStore.removeDeletedFileName(photo.fileName)
         }
-    }
-
-    private fun makeFileToUri(photoUri: String, fileName: String): String {
-        val context = applicationContext
-        val storage = context.filesDir
-        val imageFile = File(storage, fileName)
-        imageFile.createNewFile()
-
-        FileOutputStream(imageFile).use { fos ->
-            BitmapFactory.decodeStream(URL(photoUri).openStream()).apply {
-                if (Build.VERSION.SDK_INT >= 30) {
-                    compress(Bitmap.CompressFormat.WEBP_LOSSY, 100, fos)
-                } else {
-                    compress(Bitmap.CompressFormat.JPEG, 100, fos)
-                }
-
-                recycle()
-            }
-            fos.flush()
-        }
-
-        return FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            imageFile
-        ).toString()
     }
 
     private fun isUnSyncLabel(label: SyncAlbumsDto, firebaseLabel: FirebaseLabelResponse): Boolean {
