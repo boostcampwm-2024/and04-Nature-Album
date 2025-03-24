@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.and04.naturealbum.background.workmanager.SynchronizationWorker
 import com.and04.naturealbum.data.localdata.datastore.DataStoreManager
 import com.and04.naturealbum.data.localdata.datastore.DataStoreManager.Companion.NEVER_SYNC
-import com.and04.naturealbum.ui.utils.UiState
 import com.and04.naturealbum.data.model.UserInfo
 import com.and04.naturealbum.ui.utils.UserManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,11 +25,8 @@ class MyPageViewModel @Inject constructor(
     private val userManager: UserManager,
     private val syncDataStore: DataStoreManager,
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow(setInitUiState())
-    val uiState: StateFlow<UiState<UserInfo>> = _uiState
-
-    private val _progressState = MutableStateFlow(false)
-    val progressState: StateFlow<Boolean> = _progressState
+    private val _loginState = MutableStateFlow(setInitUiState())
+    val loginState: StateFlow<LoginState> = _loginState
 
     val recentSyncTime: StateFlow<String> = syncDataStore.syncTime.stateIn(
         scope = viewModelScope,
@@ -56,28 +52,24 @@ class MyPageViewModel @Inject constructor(
     }
 
     fun signInWithGoogle(context: Context) {
+        _loginState.value = LoginState.LoginLoading
         authenticationManager.signInWithGoogle(context).onEach { response ->
             when (response) {
                 is AuthResponse.Success -> {
-                    _uiState.emit(
+                    _loginState.emit(
                         getUserInfoUiState()
                     )
                 }
+                is AuthResponse.Error -> {
+                    _loginState.value = LoginState.Logout
+                }
             }
-            //닫혔을 때
-            _progressState.value = false
         }.launchIn(viewModelScope)
-        //열렸을 때
-        _progressState.value = true
     }
 
-    fun setProgressState(state: Boolean) {
-        _progressState.value = state
-    }
-
-    private fun getUserInfoUiState(): UiState.Success<UserInfo> {
+    private fun getUserInfoUiState(): LoginState {
         val user = UserManager.getUser()
-        return UiState.Success(
+        return LoginState.Login(
             UserInfo(
                 userEmail = user?.email,
                 userPhotoUri = user?.photoUrl.toString(),
@@ -87,11 +79,11 @@ class MyPageViewModel @Inject constructor(
         )
     }
 
-    private fun setInitUiState(): UiState<UserInfo> {
+    private fun setInitUiState(): LoginState {
         return if (userManager.isSignIn()) {
             getUserInfoUiState()
         } else {
-            UiState.Idle
+            LoginState.Logout
         }
     }
 }

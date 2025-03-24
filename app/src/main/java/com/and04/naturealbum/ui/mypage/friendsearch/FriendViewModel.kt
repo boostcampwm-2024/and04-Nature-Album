@@ -107,14 +107,15 @@ class FriendViewModel @Inject constructor(
     fun sendFriendRequest(targetUid: String) {
         uid?.let { currentUid ->
             viewModelScope.launch {
-                val success = friendRepository.sendFriendRequest(currentUid, targetUid)
-                if (success) {
-                    _searchResults.value = _searchResults.value.toMutableMap().apply {
-                        this[targetUid] =
-                            this[targetUid]?.copy(status = FriendStatus.SENT) ?: return@launch
+                val result = friendRepository.sendFriendRequest(currentUid, targetUid)
+                    .onSuccess {
+                        _searchResults.value = _searchResults.value.toMutableMap().apply {
+                            this[targetUid] =
+                                this[targetUid]?.copy(status = FriendStatus.SENT) ?: return@launch
+                        }
                     }
-                }
-                _friendRequestStatus.value = success
+
+                _friendRequestStatus.value = result.isSuccess
             }
         }
     }

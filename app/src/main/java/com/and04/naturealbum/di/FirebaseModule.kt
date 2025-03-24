@@ -1,6 +1,8 @@
 package com.and04.naturealbum.di
 
-import com.and04.naturealbum.data.datasource.FirebaseDataSource
+import com.and04.naturealbum.data.datasource.remote.FriendDataSource
+import com.and04.naturealbum.data.datasource.remote.RemoteAlbumDataSource
+import com.and04.naturealbum.data.datasource.remote.UserDataSource
 import com.and04.naturealbum.data.repository.firebase.AlbumRepository
 import com.and04.naturealbum.data.repository.firebase.AlbumRepositoryImpl
 import com.and04.naturealbum.data.repository.firebase.FriendRepository
@@ -31,29 +33,42 @@ object FirebaseModule {
 
     @Provides
     @Singleton
-    fun providerFirebaseDataSource(
+    fun providerRemoteAlbumDataSource(
         fireStore: FirebaseFirestore,
         fireStorage: FirebaseStorage,
-    ): FirebaseDataSource = FirebaseDataSource(fireStore, fireStorage)
+    ): RemoteAlbumDataSource = RemoteAlbumDataSource(fireStore, fireStorage)
+
+    @Provides
+    @Singleton
+    fun providerUserDataSourceDataSource(
+        fireStore: FirebaseFirestore,
+    ): UserDataSource = UserDataSource(fireStore)
+
+    @Provides
+    @Singleton
+    fun providerFriendDataSourceDataSource(
+        fireStore: FirebaseFirestore,
+    ): FriendDataSource = FriendDataSource(fireStore)
 
     @Provides
     @Singleton
     fun providerFireBaseRepository(
-        firebaseDataSource: FirebaseDataSource,
+        remoteAlbumDataSource: RemoteAlbumDataSource,
         localDataRepository: PhotoDetailRepository,
         localAlbumRepository: LocalAlbumRepository
     ): AlbumRepository =
-        AlbumRepositoryImpl(firebaseDataSource, localDataRepository, localAlbumRepository)
+        AlbumRepositoryImpl(remoteAlbumDataSource, localDataRepository, localAlbumRepository)
 
     @Provides
     @Singleton
     fun providerFriendRepository(
-        firebaseDataSource: FirebaseDataSource
-    ): FriendRepository = FriendRepository(firebaseDataSource)
+        userDataSource: UserDataSource,
+        friendDataSource: FriendDataSource,
+    ): FriendRepository = FriendRepository(userDataSource, friendDataSource)
 
     @Provides
     @Singleton
     fun providerUserRepository(
-        firebaseDataSource: FirebaseDataSource
-    ): UserRepository = UserRepository(firebaseDataSource)
+        userDataSource: UserDataSource
+    ): UserRepository = UserRepository(userDataSource)
 }

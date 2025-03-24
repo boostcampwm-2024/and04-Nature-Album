@@ -45,10 +45,13 @@ class MapScreenViewModel @Inject constructor(
                 val labels = albumRepository.getLabelsToMap(friends)
                 _photosByUid.emit(
                     mapOf("" to myPhotos) +
-                            photos.await().mapValues { (uid, photos) ->
-                                photos.toFriendPhotoItems(labels.getValue(uid))
-                            }
+                            photos.await()
+                                .getOrThrow()
+                                .mapValues { (uid, photos) ->
+                                    photos.toFriendPhotoItems(labels.getOrThrow().getValue(uid))
+                                }
                 )
+
             } catch (e: Exception) {
                 Log.e("MapScreenViewModel", e.toString())
             }

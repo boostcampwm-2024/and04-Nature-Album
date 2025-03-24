@@ -161,12 +161,13 @@ class AuthenticationManager @Inject constructor(
                 val token = task.result
                 if (token != null) {
                     CoroutineScope(Dispatchers.IO).launch {
-                        val success = userRepository.saveFcmToken(uid, token)
-                        if (success) {
-                            Log.d("FCM", "FCM token updated successfully via Repository")
-                        } else {
-                            Log.e("FCM", "Failed to update FCM token via Repository")
-                        }
+                        userRepository.saveFcmToken(uid, token)
+                            .onSuccess {
+                                Log.d("FCM", "FCM token updated successfully via Repository")
+                            }
+                            .onFailure {
+                                Log.e("FCM", "Failed to update FCM token via Repository")
+                            }
                     }
                 } else {
                     Log.e("FCM", "Failed to fetch FCM token: ${task.exception?.message}")
@@ -182,19 +183,17 @@ class AuthenticationManager @Inject constructor(
         photoUrl: String?,
     ): Boolean {
         Log.d("Firestore", "Checking if user exists in Firestore: UID=$uid")
-        return try {
-            val userDoc = userRepository.createUserIfNotExists(
-                uid = uid,
-                displayName = displayName,
-                email = email,
-                photoUrl = photoUrl
-            )
-            Log.d("Firestore", "User creation result: $userDoc")
-            userDoc
-        } catch (e: Exception) {
-            Log.e("Firestore", "Error creating user in Firestore: ${e.message}")
-            false
+
+        val result = userRepository.createUserIfNotExists(
+            uid = uid,
+            displayName = displayName,
+            email = email,
+            photoUrl = photoUrl
+        ).onFailure {
+            Log.e("Firestore", "Error creating user in Firestore: ${it.message}")
         }
+
+        return result.isSuccess
     }
 
     private fun getUserToken(trySend: (AuthResponse) -> Unit) {
