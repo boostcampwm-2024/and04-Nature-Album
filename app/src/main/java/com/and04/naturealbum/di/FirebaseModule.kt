@@ -1,6 +1,6 @@
 package com.and04.naturealbum.di
 
-import com.and04.naturealbum.data.datasource.FirebaseDataSource
+import com.and04.naturealbum.data.datasource.remote.RemoteAlbumDataSource
 import com.and04.naturealbum.data.repository.firebase.AlbumRepository
 import com.and04.naturealbum.data.repository.firebase.AlbumRepositoryImpl
 import com.and04.naturealbum.data.repository.firebase.FriendRepository
@@ -34,26 +34,26 @@ object FirebaseModule {
     fun providerFirebaseDataSource(
         fireStore: FirebaseFirestore,
         fireStorage: FirebaseStorage,
-    ): FirebaseDataSource = FirebaseDataSource(fireStore, fireStorage)
+    ): RemoteAlbumDataSource = RemoteAlbumDataSource(fireStore, fireStorage)
 
     @Provides
     @Singleton
     fun providerFireBaseRepository(
-        firebaseDataSource: FirebaseDataSource,
+        remoteAlbumDataSource: RemoteAlbumDataSource,
         localDataRepository: PhotoDetailRepository,
         localAlbumRepository: LocalAlbumRepository
     ): AlbumRepository =
-        AlbumRepositoryImpl(firebaseDataSource, localDataRepository, localAlbumRepository)
+        AlbumRepositoryImpl(remoteAlbumDataSource, localDataRepository, localAlbumRepository)
 
     @Provides
     @Singleton
     fun providerFriendRepository(
-        firebaseDataSource: FirebaseDataSource
-    ): FriendRepository = FriendRepository(firebaseDataSource)
+        remoteAlbumDataSource: RemoteAlbumDataSource
+    ): FriendRepository = FriendRepository(remoteAlbumDataSource)
 
     @Provides
     @Singleton
     fun providerUserRepository(
-        firebaseDataSource: FirebaseDataSource
-    ): UserRepository = UserRepository(firebaseDataSource)
+        remoteAlbumDataSource: RemoteAlbumDataSource
+    ): UserRepository = UserRepository(remoteAlbumDataSource)
 }

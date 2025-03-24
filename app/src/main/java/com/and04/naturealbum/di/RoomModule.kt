@@ -1,7 +1,7 @@
 package com.and04.naturealbum.di
 
 import android.content.Context
-import com.and04.naturealbum.data.datasource.local.AlbumDataSource
+import com.and04.naturealbum.data.datasource.local.LocalAlbumDataSource
 import com.and04.naturealbum.data.datasource.local.LabelDataSource
 import com.and04.naturealbum.data.datasource.local.PhotoDetailDataSource
 import com.and04.naturealbum.data.localdata.room.AlbumDao
@@ -72,28 +72,28 @@ object RoomModule {
     @Singleton
     @Provides
     fun providerPhotoDetailRepository(
-        albumDataSource: AlbumDataSource,
+        localAlbumDataSource: LocalAlbumDataSource,
         photoDetailDataSource: PhotoDetailDataSource,
-    ): PhotoDetailRepository = PhotoDetailRepositoryImpl(albumDataSource, photoDetailDataSource)
+    ): PhotoDetailRepository = PhotoDetailRepositoryImpl(localAlbumDataSource, photoDetailDataSource)
 
     @Singleton
     @Provides
     fun providerSyncRepo(
         labelDataSource: LabelDataSource,
-        albumDataSource: AlbumDataSource,
+        localAlbumDataSource: LocalAlbumDataSource,
         photoDetailDataSource: PhotoDetailDataSource
-    ): SyncRepository = SyncRepositoryImpl(labelDataSource, albumDataSource, photoDetailDataSource)
+    ): SyncRepository = SyncRepositoryImpl(labelDataSource, localAlbumDataSource, photoDetailDataSource)
 
     @Singleton
     @Provides
     fun providerLocalAlbumDataSource(
         albumDao: AlbumDao,
-    ) = AlbumDataSource(albumDao)
+    ) = LocalAlbumDataSource(albumDao)
 
     @Singleton
     @Provides
     fun providerLocalAlbumRepo(
-        albumDataSource: AlbumDataSource,
-    ): LocalAlbumRepository = LocalAlbumRepositoryImpl(albumDataSource)
+        localAlbumDataSource: LocalAlbumDataSource,
+    ): LocalAlbumRepository = LocalAlbumRepositoryImpl(localAlbumDataSource)
 
 }

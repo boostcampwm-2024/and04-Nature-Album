@@ -8,7 +8,7 @@ import com.and04.naturealbum.data.localdata.room.AlbumDao
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
-class AlbumDataSource @Inject constructor(
+class LocalAlbumDataSource @Inject constructor(
     private val albumDao: AlbumDao
 ) {
     fun getAllAlbum(): Flow<List<AlbumDto>> {

@@ -1,6 +1,6 @@
 package com.and04.naturealbum.data.repository.local.impl
 
-import com.and04.naturealbum.data.datasource.local.AlbumDataSource
+import com.and04.naturealbum.data.datasource.local.LocalAlbumDataSource
 import com.and04.naturealbum.data.datasource.local.PhotoDetailDataSource
 import com.and04.naturealbum.data.localdata.room.Album
 import com.and04.naturealbum.data.localdata.room.PhotoDetail
@@ -8,7 +8,7 @@ import com.and04.naturealbum.data.repository.local.PhotoDetailRepository
 import javax.inject.Inject
 
 class PhotoDetailRepositoryImpl @Inject constructor(
-    private val albumDataSource: AlbumDataSource,
+    private val localAlbumDataSource: LocalAlbumDataSource,
     private val photoDetailDataSource: PhotoDetailDataSource,
 ) : PhotoDetailRepository {
 
@@ -29,14 +29,14 @@ class PhotoDetailRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteImage(photoDetail: PhotoDetail) {
-        val album = albumDataSource.getAlbumByLabelId(photoDetail.labelId).first()
+        val album = localAlbumDataSource.getAlbumByLabelId(photoDetail.labelId).first()
         val isRepresentedImage = album.photoDetailId == photoDetail.id
         val nextRepresentedImage =
             photoDetailDataSource.getAllPhotoDetailsUriByLabelId(photoDetail.labelId)
                 .firstOrNull { it != photoDetail }
 
         if (isRepresentedImage && nextRepresentedImage != null) {
-            albumDataSource.updateAlbum(
+            localAlbumDataSource.updateAlbum(
                 Album(
                     id = album.id,
                     labelId = photoDetail.labelId,

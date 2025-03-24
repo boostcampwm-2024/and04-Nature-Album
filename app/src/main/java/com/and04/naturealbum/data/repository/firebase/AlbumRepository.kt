@@ -2,7 +2,7 @@ package com.and04.naturealbum.data.repository.firebase
 
 import android.net.Uri
 import android.util.Log
-import com.and04.naturealbum.data.datasource.FirebaseDataSource
+import com.and04.naturealbum.data.datasource.remote.RemoteAlbumDataSource
 import com.and04.naturealbum.data.dto.FirebaseLabel
 import com.and04.naturealbum.data.dto.FirebaseLabelResponse
 import com.and04.naturealbum.data.dto.FirebasePhotoInfo
@@ -45,14 +45,14 @@ interface AlbumRepository {
 }
 
 class AlbumRepositoryImpl @Inject constructor(
-    private val firebaseDataSource: FirebaseDataSource,
+    private val remoteAlbumDataSource: RemoteAlbumDataSource,
     private val photoDetailRepository: PhotoDetailRepository,
     private val localAlbumRepository: LocalAlbumRepository,
 ) : AlbumRepository {
 
     override suspend fun getLabelsToList(uid: String): Result<List<FirebaseLabelResponse>> {
         return runCatching {
-            firebaseDataSource
+            remoteAlbumDataSource
                 .getUserLabels(uid)
         }.mapCatching { querySnapshot ->
             querySnapshot
@@ -80,7 +80,7 @@ class AlbumRepositoryImpl @Inject constructor(
 
     override suspend fun getPhotosToList(uid: String): Result<List<FirebasePhotoInfoResponse>> {
         return runCatching {
-            firebaseDataSource
+            remoteAlbumDataSource
                 .getUserPhotos(uid)
         }.mapCatching { querySnapshot ->
             querySnapshot
@@ -112,7 +112,7 @@ class AlbumRepositoryImpl @Inject constructor(
         fileName: String,
         uri: Uri,
     ): Result<Uri> {
-        return runCatching { firebaseDataSource.saveImage(uid, label, fileName, uri) }
+        return runCatching { remoteAlbumDataSource.saveImage(uid, label, fileName, uri) }
     }
 
     override suspend fun deleteImageFile(uid: String, label: Label, fileName: String): Boolean =
@@ -123,7 +123,7 @@ class AlbumRepositoryImpl @Inject constructor(
             FirebaseLock.deleteMutex.withLock {
                 return@supervisorScope if (isFileExist(uid, label.name, fileName)) {
                     val deleteFileJob = async(exceptionHandler) {
-                        firebaseDataSource.deleteImage(
+                        remoteAlbumDataSource.deleteImage(
                             uid,
                             label,
                             fileName
@@ -133,15 +133,15 @@ class AlbumRepositoryImpl @Inject constructor(
                     val checkAlbumsJob = async(exceptionHandler) {
                         val albums = localAlbumRepository.getAlbumByLabelId(label.id)
                         if (albums.isEmpty()) {
-                            firebaseDataSource.deleteUserLabel(uid, label)
+                            remoteAlbumDataSource.deleteUserLabel(uid, label)
                         } else {
                             val albumPresentFileName =
                                 photoDetailRepository.getPhotoDetailById(albums[0].photoDetailId).fileName
                             val document =
-                                firebaseDataSource.getPhotoInfo(uid, albumPresentFileName)
+                                remoteAlbumDataSource.getPhotoInfo(uid, albumPresentFileName)
                             document.toObject(FirebasePhotoInfoResponse::class.java)
                                 ?.let { photoInfo ->
-                                    firebaseDataSource.setUserLabel(
+                                    remoteAlbumDataSource.setUserLabel(
                                         uid,
                                         label.name,
                                         FirebaseLabel(
@@ -155,7 +155,7 @@ class AlbumRepositoryImpl @Inject constructor(
                     }
 
                     val deletePhotoJob = async(exceptionHandler) {
-                        firebaseDataSource.deleteUserPhoto(
+                        remoteAlbumDataSource.deleteUserPhoto(
                             uid,
                             fileName
                         )
@@ -172,7 +172,7 @@ class AlbumRepositoryImpl @Inject constructor(
     private suspend fun isFileExist(uid: String, labelName: String, fileName: String): Boolean {
         return withTimeoutOrNull(2_000) {
             while (true) {
-                when (firebaseDataSource.checkFileExist(uid, labelName, fileName)) {
+                when (remoteAlbumDataSource.checkFileExist(uid, labelName, fileName)) {
                     true -> return@withTimeoutOrNull true
                     false -> delay(500)
                 }
@@ -185,7 +185,7 @@ class AlbumRepositoryImpl @Inject constructor(
         labelName: String,
         labelData: FirebaseLabel,
     ): Result<Unit> {
-        return runCatching { firebaseDataSource.setUserLabel(uid, labelName, labelData) }
+        return runCatching { remoteAlbumDataSource.setUserLabel(uid, labelName, labelData) }
     }
 
     override suspend fun insertPhotoInfo(
@@ -195,7 +195,7 @@ class AlbumRepositoryImpl @Inject constructor(
     ): Result<Unit> {
         return FirebaseLock.insertMutex.withLock {
             return@withLock runCatching {
-                firebaseDataSource.setUserPhoto(
+                remoteAlbumDataSource.setUserPhoto(
                     uid,
                     fileName,
                     photoData

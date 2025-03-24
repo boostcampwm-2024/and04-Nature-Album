@@ -1,6 +1,6 @@
 package com.and04.naturealbum.data.repository.firebase
 
-import com.and04.naturealbum.data.datasource.FirebaseDataSource
+import com.and04.naturealbum.data.datasource.remote.RemoteAlbumDataSource
 import com.and04.naturealbum.data.dto.FirebaseFriend
 import com.and04.naturealbum.data.dto.FirebaseFriendRequest
 import com.and04.naturealbum.data.dto.FirestoreUser
@@ -18,15 +18,15 @@ import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
 
 class FriendRepository @Inject constructor(
-    private val firebaseDataSource: FirebaseDataSource
+    private val remoteAlbumDataSource: RemoteAlbumDataSource
 ) {
     // 친구 요청 보냈을 경우
     suspend fun sendFriendRequest(uid: String, targetUid: String): Result<Unit> {
         return runCatching {
             val requestTime = LocalDateTime.now().toString()
 
-            val currentUserSnapshot = firebaseDataSource.getUser(uid)
-            val targetUserSnapshot = firebaseDataSource.getUser(targetUid)
+            val currentUserSnapshot = remoteAlbumDataSource.getUser(uid)
+            val targetUserSnapshot = remoteAlbumDataSource.getUser(targetUid)
 
             if (!currentUserSnapshot.exists() || !targetUserSnapshot.exists()) noUserException()
 
@@ -50,7 +50,7 @@ class FriendRepository @Inject constructor(
             )
 
             // Firestore 트랜잭션으로 요청 저장
-            firebaseDataSource
+            remoteAlbumDataSource
                 .setTransactionFriendRequest(
                     uid,
                     targetUid,
@@ -67,9 +67,9 @@ class FriendRepository @Inject constructor(
             val addedTime = LocalDateTime.now().toString() // 문자열로 변환
 
             // 요청자와 대상자의 사용자 정보 가져오기
-            val currentUser = firebaseDataSource.getUser(uid)
+            val currentUser = remoteAlbumDataSource.getUser(uid)
                 .toObject(FirestoreUser::class.java) ?: noUserException()
-            val targetUser = firebaseDataSource.getUser(targetUid)
+            val targetUser = remoteAlbumDataSource.getUser(targetUid)
                 .toObject(FirestoreUser::class.java) ?: noUserException()
 
             // FirebaseFriend 데이터 생성
@@ -78,7 +78,7 @@ class FriendRepository @Inject constructor(
             val targetUidFriendData =
                 FirebaseFriend(user = currentUser as FirestoreUser, addedAt = addedTime)
 
-            firebaseDataSource
+            remoteAlbumDataSource
                 .acceptTransactionFriendRequest(
                     uid,
                     targetUid,
@@ -91,7 +91,7 @@ class FriendRepository @Inject constructor(
     // 거절했을 경우
     suspend fun rejectFriendRequest(uid: String, targetUid: String): Result<Unit> {
         return runCatching {
-            firebaseDataSource.deleteTransactionFriendRequest(
+            remoteAlbumDataSource.deleteTransactionFriendRequest(
                 uid,
                 targetUid
             )
@@ -111,7 +111,7 @@ class FriendRepository @Inject constructor(
             }
             val jobList = mutableListOf<Job>()
 
-            val listener = firebaseDataSource.searchUsers(query)
+            val listener = remoteAlbumDataSource.searchUsers(query)
                 .addSnapshotListener { snapshot, e ->
                     if (e != null) {
                         trySend(emptyMap())
@@ -129,11 +129,11 @@ class FriendRepository @Inject constructor(
 
                             try {
                                 val (friendRequestDoc, friendDoc) = listOf(
-                                    firebaseDataSource
+                                    remoteAlbumDataSource
                                         .getFriendRequestDoc(userDoc.id, uid)
                                         .get(),
 
-                                    firebaseDataSource
+                                    remoteAlbumDataSource
                                         .getFriendDoc(uid, userDoc.id)
                                         .get()
                                 ).map { taskResult -> taskResult.await() }
@@ -180,7 +180,7 @@ class FriendRepository @Inject constructor(
         }
 
     fun getFriendsAsFlow(uid: String): Flow<List<FirebaseFriend>> = callbackFlow {
-        val listener = firebaseDataSource.getUserFriends(uid)
+        val listener = remoteAlbumDataSource.getUserFriends(uid)
             .addSnapshotListener { snapshot, e ->
                 if (e != null) {
                     trySend(emptyList())
@@ -203,7 +203,7 @@ class FriendRepository @Inject constructor(
 
     fun getReceivedFriendRequestsAsFlow(uid: String): Flow<List<FirebaseFriendRequest>> =
         callbackFlow {
-            val listener = firebaseDataSource.getReceivedFriendRequests(uid)
+            val listener = remoteAlbumDataSource.getReceivedFriendRequests(uid)
                 .addSnapshotListener { snapshot, e ->
                     if (e != null) {
                         trySend(emptyList())

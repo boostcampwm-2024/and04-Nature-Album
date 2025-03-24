@@ -1,6 +1,6 @@
 package com.and04.naturealbum.data.repository.local.impl
 
-import com.and04.naturealbum.data.datasource.local.AlbumDataSource
+import com.and04.naturealbum.data.datasource.local.LocalAlbumDataSource
 import com.and04.naturealbum.data.datasource.local.LabelDataSource
 import com.and04.naturealbum.data.datasource.local.PhotoDetailDataSource
 import com.and04.naturealbum.data.dto.SyncAlbumsDto
@@ -11,7 +11,7 @@ import javax.inject.Inject
 
 class SyncRepositoryImpl @Inject constructor(
     private val labelDataSource: LabelDataSource,
-    private val albumDataSource: AlbumDataSource,
+    private val localAlbumDataSource: LocalAlbumDataSource,
     private val photoDetailDataSource: PhotoDetailDataSource
 ) : SyncRepository {
 
@@ -20,11 +20,11 @@ class SyncRepositoryImpl @Inject constructor(
     }
 
     override suspend fun getSyncCheckAlbums(): List<SyncAlbumsDto> {
-        return albumDataSource.getSyncCheckAlbums()
+        return localAlbumDataSource.getSyncCheckAlbums()
     }
 
     override suspend fun getSyncCheckPhotos(): List<SyncPhotoDetailsDto> {
-        return albumDataSource.getSyncCheckPhotos()
+        return localAlbumDataSource.getSyncCheckPhotos()
     }
 
     override suspend fun getHazardCheckResultByFileName(fileName: String): HazardAnalyzeStatus {

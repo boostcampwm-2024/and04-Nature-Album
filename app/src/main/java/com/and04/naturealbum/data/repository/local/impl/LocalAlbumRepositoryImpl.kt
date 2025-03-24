@@ -1,6 +1,6 @@
 package com.and04.naturealbum.data.repository.local.impl
 
-import com.and04.naturealbum.data.datasource.local.AlbumDataSource
+import com.and04.naturealbum.data.datasource.local.LocalAlbumDataSource
 import com.and04.naturealbum.data.dto.AlbumDto
 import com.and04.naturealbum.data.localdata.room.Album
 import com.and04.naturealbum.data.repository.local.LocalAlbumRepository
@@ -8,25 +8,25 @@ import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 class LocalAlbumRepositoryImpl @Inject constructor(
-    private val albumDataSource: AlbumDataSource,
+    private val localAlbumDataSource: LocalAlbumDataSource,
 ) : LocalAlbumRepository {
     override fun getAllAlbum(): Flow<List<AlbumDto>> {
-        return albumDataSource.getAllAlbum()
+        return localAlbumDataSource.getAllAlbum()
     }
 
     override suspend fun getAlbumByLabelId(labelId: Int): List<Album> {
-        return albumDataSource.getAlbumByLabelId(labelId)
+        return localAlbumDataSource.getAlbumByLabelId(labelId)
     }
 
     override suspend fun updateAlbum(album: Album) {
-        return albumDataSource.updateAlbum(album)
+        return localAlbumDataSource.updateAlbum(album)
     }
 
     override suspend fun updateAlbumPhotoDetailByAlbumId(photoDetailId: Int) {
-        return albumDataSource.updateAlbumPhotoDetailByAlbumId(photoDetailId)
+        return localAlbumDataSource.updateAlbumPhotoDetailByAlbumId(photoDetailId)
     }
 
     override suspend fun insertPhotoInAlbum(album: Album): Long {
-        return albumDataSource.insertAlbum(album)
+        return localAlbumDataSource.insertAlbum(album)
     }
 }
