@@ -25,11 +25,14 @@ fun NavGraphBuilder.saveAlbumNavGraph(
             locationHandler = state.locationHandler.value,
             location = state.lastLocation.value,
             model = state.imageUri.value,
-            fileName = state.fileName.value,
-            onBack = { state.takePicture(takePictureLauncher) },
+            onBack = {
+                state.deleteCachePhoto()
+                state.takePicture(takePictureLauncher)
+            },
             onSave = {
                 navigator.navigateSavePhotoToAlbum()
                 state.selectedLabel.value = null
+                state.deleteCachePhoto()
             },
             onCancel = { navigator.navigateToHome() },
             label = state.selectedLabel.value,
