@@ -86,19 +86,18 @@ class TopAppBarScreenTest {
     fun 앨범_등록_화면() {
         composeTestRule.setContent {
             SavePhotoScreen(
-                "".toUri(),
-                "fileName: String",
-                mutableStateOf(null),
-                mutableStateOf(""),
-                {},
-                mutableStateOf(false),
-                {},
-                mutableStateOf(UiState.Idle),
-                {},
-                {},
-                {},
-                { _, _, _, _, _, _, _ -> },
-                null
+                model = "".toUri(),
+                location = mutableStateOf(null),
+                photoSaveState = mutableStateOf(UiState.Idle),
+                rememberDescription = mutableStateOf(""),
+                onDescriptionChange = {},
+                isRepresented = mutableStateOf(false),
+                onRepresentedChange = {},
+                onNavigateToMyPage = {},
+                onLabelSelect = {},
+                onBack = {},
+                savePhoto = { _, _, _, _, _, _, _ -> },
+                label = null
             )
         }
 
