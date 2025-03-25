@@ -26,6 +26,7 @@ import coil3.request.crossfade
 import com.and04.naturealbum.R
 import com.and04.naturealbum.data.localdata.room.Label
 import com.and04.naturealbum.ui.utils.UiState
+import com.and04.naturealbum.utils.image.ImageConvert
 import java.time.LocalDateTime
 import java.time.ZoneId
 
@@ -33,7 +34,6 @@ import java.time.ZoneId
 fun SavePhotoScreenLandscape(
     innerPadding: PaddingValues,
     uri: Uri,
-    fileName: String,
     label: Label?,
     location: Location,
     rememberDescription: State<String>,
@@ -108,8 +108,10 @@ fun SavePhotoScreenLandscape(
                     stringRes = R.string.save_photo_screen_save,
                     onClick = {
                         val time = LocalDateTime.now(ZoneId.of("UTC"))
+                        val fileName = "${System.currentTimeMillis()}.jpg"
+                        val fileUri = ImageConvert.makeFileToUri(uri.toString(), fileName)
                         savePhoto(
-                            uri.toString(),
+                            fileUri,
                             fileName,
                             label!!,
                             location,
@@ -120,7 +122,7 @@ fun SavePhotoScreenLandscape(
 
                         insertFirebaseService(
                             context = context,
-                            uri = uri,
+                            uri = fileUri,
                             fileName = fileName,
                             label = label,
                             location = location,

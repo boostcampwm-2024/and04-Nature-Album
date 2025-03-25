@@ -1,22 +1,22 @@
 package com.and04.naturealbum.data.repository.firebase
 
-import com.and04.naturealbum.data.datasource.FirebaseDataSource
+import com.and04.naturealbum.data.datasource.remote.UserDataSource
 import com.and04.naturealbum.data.dto.FirestoreUser
 import com.and04.naturealbum.data.dto.FirestoreUser.Companion.EMPTY
 import com.and04.naturealbum.data.dto.FirestoreUser.Companion.UNKNOWN
 import javax.inject.Inject
 
 class UserRepository @Inject constructor(
-    private val firebaseDataSource: FirebaseDataSource
+    private val userDataSource: UserDataSource,
 ) {
     suspend fun createUserIfNotExists(
         uid: String,
         displayName: String?,
         email: String,
         photoUrl: String?,
-    ): Boolean {
+    ): Result<Unit> {
         return runCatching {
-            val userDoc = firebaseDataSource.getUser(uid)
+            val userDoc = userDataSource.getUser(uid)
             if (!userDoc.exists()) {
                 val firestoreUser = FirestoreUser(
                     uid = uid,
@@ -24,12 +24,12 @@ class UserRepository @Inject constructor(
                     email = email,
                     photoUrl = photoUrl ?: EMPTY
                 )
-                firebaseDataSource.setUser(uid, firestoreUser)
+                userDataSource.setUser(uid, firestoreUser)
             }
-        }.isSuccess
+        }
     }
 
-    suspend fun saveFcmToken(uid: String, token: String): Boolean {
-        return firebaseDataSource.updateUser(uid, token).isSuccess
+    suspend fun saveFcmToken(uid: String, token: String): Result<Unit> {
+        return runCatching { userDataSource.updateUser(uid, token) }
     }
 }

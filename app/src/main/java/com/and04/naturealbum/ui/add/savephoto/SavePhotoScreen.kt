@@ -5,8 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration.UI_MODE_NIGHT_NO
 import android.content.res.Configuration.UI_MODE_NIGHT_YES
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.location.Location
 import android.net.Uri
 import androidx.activity.compose.BackHandler
@@ -80,7 +78,6 @@ import com.and04.naturealbum.utils.network.NetworkState
 import com.and04.naturealbum.utils.network.NetworkState.DISCONNECTED
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
-import java.io.IOException
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -88,8 +85,7 @@ import java.time.format.DateTimeFormatter
 fun SavePhotoScreen(
     locationHandler: LocationHandler,
     location: Location?,
-    uri: Uri,
-    fileName: String,
+    model: Uri,
     onBack: () -> Unit,
     onSave: () -> Unit,
     onCancel: () -> Unit,
@@ -108,7 +104,7 @@ fun SavePhotoScreen(
 
     //TODO 시연용
 //    if (uiState.value is UiState.Idle && NetworkState.getNetWorkCode() != DISCONNECTED) {
-//        val bitmap = loadImageFromUri(context, uri)
+//        val bitmap = loadImageFromUri(context, model)
 //        viewModel.getGeneratedContent(bitmap)
 //    }
 
@@ -140,8 +136,7 @@ fun SavePhotoScreen(
     }
 
     SavePhotoScreen(
-        uri = uri,
-        fileName = fileName,
+        model = model,
         location = newLocation,
         photoSaveState = photoSaveState,
         rememberDescription = rememberDescription,
@@ -164,8 +159,7 @@ fun SavePhotoScreen(
 
 @Composable
 fun SavePhotoScreen(
-    uri: Uri,
-    fileName: String,
+    model: Uri,
     location: State<Location?>,
     rememberDescription: State<String>,
     onDescriptionChange: (String) -> Unit,
@@ -200,8 +194,7 @@ fun SavePhotoScreen(
             if (context.isPortrait()) {
                 SavePhotoScreenPortrait(
                     innerPadding = innerPadding,
-                    uri = uri,
-                    fileName = fileName,
+                    uri = model,
                     label = label,
                     location = location.value!!,
                     rememberDescription = rememberDescription,
@@ -216,8 +209,7 @@ fun SavePhotoScreen(
             } else {
                 SavePhotoScreenLandscape(
                     innerPadding = innerPadding,
-                    uri = uri,
-                    fileName = fileName,
+                    uri = model,
                     label = label,
                     location = location.value!!,
                     rememberDescription = rememberDescription,
@@ -381,19 +373,9 @@ fun Description(
     }
 }
 
-private fun loadImageFromUri(context: Context, uri: Uri): Bitmap? {
-    return try {
-        context.contentResolver.openInputStream(uri)?.use { inputStream ->
-            BitmapFactory.decodeStream(inputStream)
-        }
-    } catch (e: IOException) {
-        null
-    }
-}
-
 fun insertFirebaseService(
     context: Context,
-    uri: Uri,
+    uri: String,
     fileName: String,
     label: Label,
     location: Location,
@@ -403,7 +385,7 @@ fun insertFirebaseService(
     if (Firebase.auth.currentUser == null || NetworkState.getNetWorkCode() == DISCONNECTED) return
     val newTime = time.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
     val intent = Intent(context, FirebaseInsertService::class.java).apply {
-        putExtra(SERVICE_URI, uri.toString())
+        putExtra(SERVICE_URI, uri)
         putExtra(SERVICE_FILENAME, fileName)
         putExtra(SERVICE_LABEL, label)
         putExtra(SERVICE_LOCATION_LATITUDE, location.latitude)
@@ -426,9 +408,8 @@ private fun ScreenPreview() {
         val location = rememberSaveable { mutableStateOf(null) }
 
         SavePhotoScreen(
-            uri = "".toUri(),
+            model = "".toUri(),
             location = location,
-            fileName = "fileName.jpg",
             rememberDescription = rememberDescription,
             onDescriptionChange = { },
             isRepresented = isRepresented,

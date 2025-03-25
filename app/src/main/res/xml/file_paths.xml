@@ -3,4 +3,8 @@
     <files-path
         name="internal_files"
         path="." />
+
+    <cache-path
+        name="temp_images"
+        path="." />
 </paths>

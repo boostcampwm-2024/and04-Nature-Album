@@ -69,14 +69,12 @@ import com.and04.naturealbum.background.workmanager.SynchronizationWorker
 import com.and04.naturealbum.data.dto.FirebaseFriend
 import com.and04.naturealbum.data.dto.FirebaseFriendRequest
 import com.and04.naturealbum.data.dto.MyFriend
-import com.and04.naturealbum.data.model.UserInfo
 import com.and04.naturealbum.ui.component.AppBarType
 import com.and04.naturealbum.ui.component.ProgressIndicator
 import com.and04.naturealbum.ui.component.RotatingButton
 import com.and04.naturealbum.ui.mypage.friendsearch.FriendViewModel
 import com.and04.naturealbum.ui.theme.NatureAlbumTheme
 import com.and04.naturealbum.ui.utils.PermissionHandler
-import com.and04.naturealbum.ui.utils.UiState
 import com.and04.naturealbum.utils.GetTopBar
 import com.and04.naturealbum.utils.network.NetworkState
 import com.and04.naturealbum.utils.network.NetworkState.CONNECTED_DATA
@@ -99,18 +97,17 @@ fun MyPageScreen(
     networkViewModel: NetworkViewModel = hiltViewModel(),
 ) {
     val networkState = networkViewModel.networkState.collectAsStateWithLifecycle()
-    val uiState = myPageViewModel.uiState.collectAsStateWithLifecycle()
+    val loginState = myPageViewModel.loginState.collectAsStateWithLifecycle()
     val myFriends = friendViewModel.friends.collectAsStateWithLifecycle()
     val receivedFriendRequests =
         friendViewModel.receivedFriendRequests.collectAsStateWithLifecycle()
     val recentSyncTime = myPageViewModel.recentSyncTime.collectAsStateWithLifecycle()
-    val progressState = myPageViewModel.progressState.collectAsStateWithLifecycle()
     val syncWorking = myPageViewModel.syncWorking.collectAsStateWithLifecycle()
 
     MyPageScreenContent(
         navigateToHome = navigateToHome,
         navigateToFriendSearchScreen = navigateToFriendSearchScreen,
-        uiState = uiState,
+        loginState = loginState,
         myFriendsState = myFriends,
         friendRequestsState = receivedFriendRequests,
         signInWithGoogle = myPageViewModel::signInWithGoogle,
@@ -119,8 +116,6 @@ fun MyPageScreen(
         recentSyncTime = recentSyncTime,
         networkState = networkState,
         initializeFriendViewModel = friendViewModel::initialize,
-        progressState = progressState,
-        setProgressState = myPageViewModel::setProgressState,
         syncWorking = syncWorking,
         startSync = myPageViewModel::startSync
     )
@@ -130,7 +125,7 @@ fun MyPageScreen(
 fun MyPageScreenContent(
     navigateToHome: () -> Unit,
     navigateToFriendSearchScreen: () -> Unit,
-    uiState: State<UiState<UserInfo>>,
+    loginState: State<LoginState>,
     myFriendsState: State<List<FirebaseFriend>>,
     friendRequestsState: State<List<FirebaseFriendRequest>>,
     signInWithGoogle: (Context) -> Unit,
@@ -139,8 +134,6 @@ fun MyPageScreenContent(
     recentSyncTime: State<String>,
     networkState: State<Int>,
     initializeFriendViewModel: (String) -> Unit,
-    progressState: State<Boolean>,
-    setProgressState: (Boolean) -> Unit,
     syncWorking: State<Boolean>,
     startSync: () -> Unit,
 ) {
@@ -162,7 +155,7 @@ fun MyPageScreenContent(
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp)
                 .fillMaxSize(),
-            uiState = uiState,
+            loginState = loginState,
             myFriendsState = myFriendsState,
             friendRequestsState = friendRequestsState,
             recentSyncTime = recentSyncTime,
@@ -172,8 +165,6 @@ fun MyPageScreenContent(
             snackBarHostState = snackBarHostState,
             networkState = networkState,
             initializeFriendViewModel = initializeFriendViewModel,
-            progressState = progressState,
-            setProgressState = setProgressState,
             syncWorking = syncWorking,
             startSync = startSync
         )
@@ -184,7 +175,7 @@ fun MyPageScreenContent(
 private fun MyPageContent(
     navigateToFriendSearchScreen: () -> Unit,
     modifier: Modifier,
-    uiState: State<UiState<UserInfo>>,
+    loginState: State<LoginState>,
     myFriendsState: State<List<FirebaseFriend>>,
     friendRequestsState: State<List<FirebaseFriendRequest>>,
     signInWithGoogle: (Context) -> Unit,
@@ -194,8 +185,6 @@ private fun MyPageContent(
     snackBarHostState: SnackbarHostState,
     networkState: State<Int>,
     initializeFriendViewModel: (String) -> Unit,
-    progressState: State<Boolean>,
-    setProgressState: (Boolean) -> Unit,
     syncWorking: State<Boolean>,
     startSync: () -> Unit,
 ) {
@@ -214,17 +203,17 @@ private fun MyPageContent(
     }
 
     Box(modifier = modifier) {
-        when (val success = uiState.value) {
-            is UiState.Success -> {
+        when (val success = loginState.value) {
+            is LoginState.Login -> {
                 Column(
                     modifier = modifier,
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(32.dp),
                 ) {
-                    val userEmail = success.data.userEmail
-                    val userPhotoUri = success.data.userPhotoUri
-                    val userDisplayName = success.data.userDisplayName
-                    val userUid = success.data.userUid
+                    val userEmail = success.userInfo.userEmail
+                    val userPhotoUri = success.userInfo.userPhotoUri
+                    val userDisplayName = success.userInfo.userDisplayName
+                    val userUid = success.userInfo.userUid
 
                     userUid?.let { initializeFriendViewModel(userUid) }
 
@@ -258,10 +247,9 @@ private fun MyPageContent(
                 }
             }
 
-            else -> {
-                // 비회원일 때
+            is LoginState.Logout, LoginState.LoginLoading -> {
                 Box {
-                    ProgressIndicator(progressState.value)
+                    ProgressIndicator(success is LoginState.LoginLoading)
                 }
                 Column(
                     modifier = modifier,
@@ -270,8 +258,6 @@ private fun MyPageContent(
                 ) {
                     UserProfileContent()
                     LoginContent(
-                        progressState = progressState,
-                        setProgressState = setProgressState,
                     ) { signInWithGoogle(context) }
                 }
             }
@@ -370,8 +356,6 @@ private fun UserProfileImage(uri: String?, modifier: Modifier) {
 
 @Composable
 private fun LoginContent(
-    progressState: State<Boolean>,
-    setProgressState: (Boolean) -> Unit,
     loginHandle: () -> Unit,
 ) {
     Column(
@@ -405,7 +389,6 @@ private fun LoginContent(
                             .show()
                     } else {
                         loginHandle()
-                        setProgressState(true)
                     }
                 }
         ) {
@@ -597,7 +580,7 @@ private fun startSnackBar(
 @Preview(showBackground = true, uiMode = UI_MODE_NIGHT_NO)
 @Composable
 private fun MyPageScreenPreview() {
-    val uiState = remember { mutableStateOf(UiState.Idle) }
+    val loginState = remember { mutableStateOf(LoginState.Logout) }
     val myFriends = remember {
         mutableStateOf(
             listOf(
@@ -617,7 +600,7 @@ private fun MyPageScreenPreview() {
     NatureAlbumTheme {
 //        MyPageScreen(
 //            navigateToHome = {},
-//            uiState = uiState,
+//            loginState = loginState,
 //            myFriends = myFriends,
 //            userEmail = userEmail.value,
 //            userPhotoUrl = userPhotoUrl.value,
