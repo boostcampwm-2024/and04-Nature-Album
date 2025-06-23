@@ -1,5 +1,6 @@
 package com.and04.naturealbum.ui.maps
 
+import android.content.Context
 import android.graphics.PointF
 import android.view.Gravity
 import android.view.View
@@ -50,14 +51,21 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.ImageLoader
+import coil3.request.CachePolicy
+import coil3.request.ErrorResult
 import coil3.request.ImageRequest
+import coil3.request.SuccessResult
+import coil3.request.crossfade
 import coil3.request.placeholder
 import com.and04.naturealbum.R
 import com.and04.naturealbum.data.dto.FirebaseFriend
 import com.and04.naturealbum.ui.component.LoadingAsyncImage
+import com.and04.naturealbum.ui.component.LoadingIcons
 import com.and04.naturealbum.ui.component.NetworkDisconnectContent
 import com.and04.naturealbum.ui.component.PartialBottomSheet
 import com.and04.naturealbum.ui.component.PhotoContent
+import com.and04.naturealbum.ui.component.RotatingImageLoading
 import com.and04.naturealbum.ui.utils.UserManager
 import com.and04.naturealbum.utils.color.toColor
 import com.and04.naturealbum.utils.network.NetworkState
@@ -70,6 +78,7 @@ import com.naver.maps.map.NaverMap
 import com.naver.maps.map.overlay.Marker
 import com.naver.maps.map.overlay.Overlay
 import com.naver.maps.map.overlay.OverlayImage
+import kotlinx.coroutines.launch
 
 @Composable
 fun MapScreen(
@@ -112,6 +121,7 @@ fun MapScreen(
             mapView.addView(this)
         }
     }
+    val preloadState = remember { hashMapOf<String, MutableState<PreloadState>>() }
 
     BackHandler(
         enabled = (pick.value != null)
@@ -129,7 +139,9 @@ fun MapScreen(
         photosByUid = photosByUid,
         clusterManagers = clusterManagers,
         bottomSheetPhotos = bottomSheetPhotos,
-        lifecycleOwner = lifecycleOwner
+        lifecycleOwner = lifecycleOwner,
+        context = context,
+        preloadState = preloadState
     )
 
     NatureAlbumMap(
@@ -144,7 +156,8 @@ fun MapScreen(
         showPhotoContent = showPhotoContent,
         friends = friends,
         selectedFriends = selectedFriends,
-        navigateToHome = navigateToHome
+        navigateToHome = navigateToHome,
+        preloadState = preloadState,
     )
 }
 
@@ -161,7 +174,8 @@ private fun NatureAlbumMap(
     showPhotoContent: MutableState<Boolean>,
     friends: State<List<FirebaseFriend>>,
     selectedFriends: MutableState<List<FirebaseFriend>>,
-    navigateToHome: () -> Unit
+    navigateToHome: () -> Unit,
+    preloadState: HashMap<String, MutableState<PreloadState>>,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         if (networkState.value == NetworkState.DISCONNECTED) {
@@ -207,7 +221,8 @@ private fun NatureAlbumMap(
                     onPhotoDoubleClick = { photo ->
                         pick.value = photo
                         showPhotoContent.value = true
-                    }
+                    },
+                    preloadState = preloadState,
                 )
             }
 
@@ -256,6 +271,8 @@ private fun EffectCollection(
     clusterManagers: List<ClusterManager>,
     bottomSheetPhotos: MutableState<List<PhotoItem>>,
     lifecycleOwner: LifecycleOwner,
+    context: Context,
+    preloadState: HashMap<String, MutableState<PreloadState>>
 ) {
     LaunchedEffect(cameraPivot.value) {
         mapView.getMapAsync { naverMap ->
@@ -285,6 +302,18 @@ private fun EffectCollection(
     }
 
     LaunchedEffect(photosByUid.value) {
+        val totalPhotos = photosByUid.value.values.flatten()
+
+        val imageLoader = ImageLoader.Builder(context)
+            .memoryCachePolicy(CachePolicy.DISABLED)
+            .build()
+
+        totalPhotos.forEach { photo ->
+            launch {
+                preload(photo.uri, context, imageLoader, preloadState)
+            }
+        }
+
         clusterManagers.forEachIndexed { index, cluster ->
             cluster.setPhotoItems(
                 photosByUid.value.keys.elementAtOrNull(index) ?: "",
@@ -295,7 +324,6 @@ private fun EffectCollection(
         pick.value = null
         bottomSheetPhotos.value = emptyList()
 
-        val totalPhotos = photosByUid.value.values.flatten()
         if (totalPhotos.isNotEmpty()) {
             val bound = LatLngBounds.Builder().apply {
                 totalPhotos.forEach { photoItem ->
@@ -349,6 +377,7 @@ private fun PhotoGrid(
     modifier: Modifier = Modifier,
     onPhotoClick: (PhotoItem) -> Unit,
     onPhotoDoubleClick: (PhotoItem) -> Unit,
+    preloadState: HashMap<String, MutableState<PreloadState>>,
 ) {
     val groupByLabel = photos
         .value
@@ -384,23 +413,43 @@ private fun PhotoGrid(
                     modifier = modifier, horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     row.forEach { photo ->
-                        LoadingAsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data(photo.uri)
-                                .placeholder(R.drawable.ic_image)
-                                .build(),
-                            contentDescription = photo.label.name,
-                            modifier = modifier
-                                .wrapContentSize(Alignment.Center)
-                                .aspectRatio(1f)
-                                .weight(1f)
-                                .clip(MaterialTheme.shapes.medium)
-                                .combinedClickable(
-                                    onClick = { onPhotoClick(photo) },
-                                    onDoubleClick = { onPhotoDoubleClick(photo) },
-                                ),
-                            contentScale = ContentScale.Crop,
-                        )
+                        when (preloadState[photo.uri]?.value ?: PreloadState.Fail) {
+                            is PreloadState.Loading -> {
+                                Box(
+                                    modifier = modifier
+                                        .wrapContentSize(Alignment.Center)
+                                        .aspectRatio(1f)
+                                        .weight(1f)
+                                        .clip(MaterialTheme.shapes.medium),
+                                ) {
+                                    RotatingImageLoading(
+                                        drawableRes = LoadingIcons.entries.random().id,
+                                        stringRes = null,
+                                    )
+                                }
+                            }
+
+                            is PreloadState.Success, PreloadState.Fail -> {
+                                LoadingAsyncImage(
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data(photo.uri)
+                                        .placeholder(R.drawable.ic_image)
+                                        .build(),
+                                    contentDescription = photo.label.name,
+                                    modifier = modifier
+                                        .wrapContentSize(Alignment.Center)
+                                        .aspectRatio(1f)
+                                        .weight(1f)
+                                        .clip(MaterialTheme.shapes.medium)
+                                        .combinedClickable(
+                                            onClick = { onPhotoClick(photo) },
+                                            onDoubleClick = { onPhotoDoubleClick(photo) },
+                                        ),
+                                    contentScale = ContentScale.Crop,
+                                )
+                            }
+                        }
+
                     }
                     repeat(columnCount - row.size) {
                         Box(modifier = modifier.weight(1f))
@@ -434,4 +483,31 @@ private fun mapViewSettings(
             uiSettings.isZoomControlEnabled = false
         }
     }
+}
+
+private fun preload(
+    url: String,
+    context: Context,
+    imageLoader: ImageLoader,
+    preloadState: HashMap<String, MutableState<PreloadState>>,
+) {
+    val request = ImageRequest.Builder(context)
+        .data(url)
+        .listener(object : ImageRequest.Listener {
+            override fun onStart(request: ImageRequest) {
+                preloadState.getOrPut(url) { mutableStateOf(PreloadState.Loading) }
+            }
+
+            override fun onSuccess(request: ImageRequest, result: SuccessResult) {
+                preloadState[url]?.value = PreloadState.Success
+            }
+
+            override fun onError(request: ImageRequest, result: ErrorResult) {
+                preloadState[url]?.value = PreloadState.Fail
+            }
+        })
+        .crossfade(true)
+        .build()
+
+    imageLoader.enqueue(request)
 }
