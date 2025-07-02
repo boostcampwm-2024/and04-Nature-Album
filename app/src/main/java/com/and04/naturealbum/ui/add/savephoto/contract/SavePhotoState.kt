@@ -12,11 +12,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import com.and04.naturealbum.ui.navigation.NatureAlbumNavigator
 import com.and04.naturealbum.ui.navigation.NatureAlbumState
+import com.and04.naturealbum.ui.utils.UiState
 import com.and04.naturealbum.ui.utils.UiStatus
 
 @Immutable
 data class SavePhotoState(
     val status: UiStatus = UiStatus.Idle,
+    val saveState: UiState<Unit> = UiState.Idle,
     val appState: NatureAlbumState? = null,
     val uri: Uri? = null,
     val location: Location? = null,

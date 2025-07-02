@@ -44,9 +44,6 @@ class SavePhotoViewModel @Inject constructor(
     override val container: Container<SavePhotoState, SavePhotoEffect> =
         container(SavePhotoState())
 
-    private val _saveState = MutableStateFlow<UiState<Unit>>(UiState.Idle)
-    val saveState: StateFlow<UiState<Unit>> = _saveState
-
     private val _vertexAIState = MutableStateFlow<UiState<String>>(UiState.Idle)
     val vertexAIState: StateFlow<UiState<String>> = _vertexAIState
 
@@ -120,71 +117,80 @@ class SavePhotoViewModel @Inject constructor(
         isRepresented: Boolean,
         time: LocalDateTime,
     ) {
-        _saveState.value = UiState.Loading // 로딩 시작
-        viewModelScope.launch {
-            try {
-                val labelId =
-                    if (label.id == NEW_LABEL) labelRepository.insertLabel(label).toInt()
-                    else label.id
+        intent {
+            reduce {
+                state.copy(saveState = UiState.Loading)
+            }
 
-                val album = async { localAlbumRepository.getAlbumByLabelId(labelId) }
-                val address = async {
-                    if (NetworkState.getNetWorkCode() != NetworkState.DISCONNECTED) {
-                        retrofitRepository.convertCoordsToAddress(
-                            latitude = location.latitude,
-                            longitude = location.longitude
-                        )
-                    } else {
-                        EMPTY_ADDRESS
+            viewModelScope.launch {
+                try {
+                    val labelId =
+                        if (label.id == NEW_LABEL) labelRepository.insertLabel(label).toInt()
+                        else label.id
+
+                    val album = async { localAlbumRepository.getAlbumByLabelId(labelId) }
+                    val address = async {
+                        if (NetworkState.getNetWorkCode() != NetworkState.DISCONNECTED) {
+                            retrofitRepository.convertCoordsToAddress(
+                                latitude = location.latitude,
+                                longitude = location.longitude
+                            )
+                        } else {
+                            EMPTY_ADDRESS
+                        }
                     }
-                }
-                val photoDetailId = async {
-                    photoDetailRepository.insertPhoto(
-                        PhotoDetail(
-                            labelId = labelId,
-                            photoUri = uri,
-                            fileName = fileName,
-                            latitude = location.latitude,
-                            longitude = location.longitude,
-                            description = description,
-                            hazardCheckResult = HazardAnalyzeStatus.NOT_CHECKED,
-                            datetime = time,
-                            address = address.await()
-                        )
-                    )
-                }
-
-                val photoDetail = launch {
-                    photoDetailRepository.updateAddressByPhotoDetailId(
-                        address = address.await(),
-                        photoDetailId = photoDetailId.await().toInt()
-                    )
-                }
-
-                album.await().run {
-                    if (isEmpty()) {
-                        localAlbumRepository.insertPhotoInAlbum(
-                            Album(
+                    val photoDetailId = async {
+                        photoDetailRepository.insertPhoto(
+                            PhotoDetail(
                                 labelId = labelId,
-                                photoDetailId = photoDetailId.await().toInt()
+                                photoUri = uri,
+                                fileName = fileName,
+                                latitude = location.latitude,
+                                longitude = location.longitude,
+                                description = description,
+                                hazardCheckResult = HazardAnalyzeStatus.NOT_CHECKED,
+                                datetime = time,
+                                address = address.await()
                             )
                         )
-                    } else if (isRepresented) {
-                        localAlbumRepository.updateAlbum(
-                            first().copy(
-                                photoDetailId = photoDetailId.await().toInt()
-                            )
+                    }
+
+                    val photoDetail = launch {
+                        photoDetailRepository.updateAddressByPhotoDetailId(
+                            address = address.await(),
+                            photoDetailId = photoDetailId.await().toInt()
                         )
-                    } else {
+                    }
+
+                    album.await().run {
+                        if (isEmpty()) {
+                            localAlbumRepository.insertPhotoInAlbum(
+                                Album(
+                                    labelId = labelId,
+                                    photoDetailId = photoDetailId.await().toInt()
+                                )
+                            )
+                        } else if (isRepresented) {
+                            localAlbumRepository.updateAlbum(
+                                first().copy(
+                                    photoDetailId = photoDetailId.await().toInt()
+                                )
+                            )
+                        } else {
+                        }
+                    }
+
+                    photoDetail.join()
+
+                    reduce {
+                        state.copy(saveState = UiState.Success(Unit))
+                    }
+                } catch (e: Exception) {
+                    Log.e("SavePhotoViewModel", "Error saving photo: ${e.message}")
+                    reduce {
+                        state.copy(saveState = UiState.Error(Unit))
                     }
                 }
-
-                photoDetail.join()
-
-                _saveState.emit(UiState.Success(Unit)) // 저장 완료
-            } catch (e: Exception) {
-                Log.e("SavePhotoViewModel", "Error saving photo: ${e.message}")
-                _saveState.emit(UiState.Idle)
             }
         }
     }

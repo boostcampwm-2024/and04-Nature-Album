@@ -29,7 +29,6 @@ import com.and04.naturealbum.ui.utils.UiState
 fun SavePhotoScreenPortrait(
     innerPadding: PaddingValues,
     state: () -> SavePhotoState,
-    saveState: () -> UiState<Unit>,
     onIntent: (SavePhotoIntent) -> Unit,
 ) {
     val context = LocalContext.current
@@ -87,7 +86,7 @@ fun SavePhotoScreenPortrait(
                 onClick = { onIntent(SavePhotoIntent.CancelButtonClicked) })
 
             IconTextButton(
-                enabled = (state().appState?.selectedLabel?.value != null) && (saveState() != UiState.Loading),
+                enabled = (state().appState?.selectedLabel?.value != null) && (state().saveState != UiState.Loading),
                 modifier = Modifier.weight(1f),
                 imageVector = Icons.Outlined.Create,
                 stringRes = R.string.save_photo_screen_save,

@@ -91,8 +91,8 @@ fun SavePhotoScreen(
     viewModel: SavePhotoViewModel,
 ) {
     val context = LocalContext.current
-    val saveState by viewModel.saveState.collectAsStateWithLifecycle()
     //val vertexAIState = viewModel.vertexAIState.collectAsStateWithLifecycle()
+
     viewModel.collectSideEffect { effect ->
         when (effect) {
             is SavePhotoEffect.Navigation.Save -> {
@@ -135,7 +135,6 @@ fun SavePhotoScreen(
     SavePhotoScreen(
         state = { state() },
         initState = { initState() },
-        saveState = { saveState },
         changeState = viewModel::changeState,
         onIntent = viewModel::onIntent,
     )
@@ -152,7 +151,6 @@ fun SavePhotoScreen(
 fun SavePhotoScreen(
     state: () -> SavePhotoState,
     initState: () -> SavePhotoState,
-    saveState: () -> UiState<Unit>,
     changeState: (SavePhotoState) -> Unit,
     onIntent: (SavePhotoIntent) -> Unit,
 ) {
@@ -192,14 +190,12 @@ fun SavePhotoScreen(
                     SavePhotoScreenPortrait(
                         innerPadding = innerPadding,
                         state = state,
-                        saveState = saveState,
                         onIntent = onIntent,
                     )
                 } else {
                     SavePhotoScreenLandscape(
                         innerPadding = innerPadding,
                         state = state,
-                        saveState = saveState,
                         onIntent = onIntent,
                     )
                 }
@@ -207,7 +203,7 @@ fun SavePhotoScreen(
         }
     }
 
-    when (saveState()) {
+    when (state().saveState) {
         is UiState.Loading -> {
             RotatingImageLoading(
                 drawableRes = R.drawable.fish_loading_image,
@@ -419,7 +415,6 @@ private fun ScreenPreview() {
         SavePhotoScreen(
             state = { state },
             initState = { state },
-            saveState = { UiState.Idle },
             changeState = {},
             onIntent = {},
         )
