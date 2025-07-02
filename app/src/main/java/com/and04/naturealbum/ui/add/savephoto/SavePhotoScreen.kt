@@ -1,15 +1,13 @@
 package com.and04.naturealbum.ui.add.savephoto
 
-import android.app.Activity.RESULT_OK
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration.UI_MODE_NIGHT_NO
 import android.content.res.Configuration.UI_MODE_NIGHT_YES
+import android.graphics.BitmapFactory
 import android.location.Location
 import android.net.Uri
 import androidx.activity.compose.BackHandler
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -37,10 +35,8 @@ import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -53,8 +49,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
-import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.Bitmap
 import com.and04.naturealbum.R
 import com.and04.naturealbum.background.service.FirebaseInsertService
 import com.and04.naturealbum.background.service.FirebaseInsertService.Companion.SERVICE_DATETIME
@@ -65,174 +61,169 @@ import com.and04.naturealbum.background.service.FirebaseInsertService.Companion.
 import com.and04.naturealbum.background.service.FirebaseInsertService.Companion.SERVICE_LOCATION_LONGITUDE
 import com.and04.naturealbum.background.service.FirebaseInsertService.Companion.SERVICE_URI
 import com.and04.naturealbum.data.localdata.room.Label
+import com.and04.naturealbum.ui.add.savephoto.contract.SavePhotoEffect
+import com.and04.naturealbum.ui.add.savephoto.contract.SavePhotoIntent
+import com.and04.naturealbum.ui.add.savephoto.contract.SavePhotoState
 import com.and04.naturealbum.ui.component.AppBarType
 import com.and04.naturealbum.ui.component.BackgroundImage
 import com.and04.naturealbum.ui.component.ProgressIndicator
 import com.and04.naturealbum.ui.component.RotatingImageLoading
 import com.and04.naturealbum.ui.theme.NatureAlbumTheme
-import com.and04.naturealbum.ui.utils.LocationHandler
 import com.and04.naturealbum.ui.utils.UiState
+import com.and04.naturealbum.ui.utils.UiStatus
 import com.and04.naturealbum.utils.GetTopBar
+import com.and04.naturealbum.utils.image.ImageConvert
 import com.and04.naturealbum.utils.isPortrait
 import com.and04.naturealbum.utils.network.NetworkState
 import com.and04.naturealbum.utils.network.NetworkState.DISCONNECTED
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
+import org.orbitmvi.orbit.compose.collectSideEffect
+import java.io.IOException
 import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 @Composable
 fun SavePhotoScreen(
-    locationHandler: LocationHandler,
-    location: Location?,
-    model: Uri,
-    onBack: () -> Unit,
-    onSave: () -> Unit,
-    onCancel: () -> Unit,
-    onLabelSelect: () -> Unit,
-    description: String = "",
-    label: Label? = null,
-    onNavigateToMyPage: () -> Unit,
+    state: SavePhotoState,
+    initState: SavePhotoState,
     viewModel: SavePhotoViewModel,
 ) {
     val context = LocalContext.current
-    val photoSaveState = viewModel.photoSaveState.collectAsStateWithLifecycle()
-    val uiState = viewModel.uiState.collectAsStateWithLifecycle()
-    val rememberDescription = rememberSaveable { mutableStateOf(description) }
-    val isRepresented = rememberSaveable { mutableStateOf(false) }
-    val newLocation = rememberSaveable { mutableStateOf(location) }
+    val saveState by viewModel.saveState.collectAsStateWithLifecycle()
+    //val vertexAIState = viewModel.vertexAIState.collectAsStateWithLifecycle()
 
-    //TODO 시연용
-//    if (uiState.value is UiState.Idle && NetworkState.getNetWorkCode() != DISCONNECTED) {
-//        val bitmap = loadImageFromUri(context, model)
-//        viewModel.getGeneratedContent(bitmap)
-//    }
+    viewModel.collectSideEffect { effect ->
+        when (effect) {
+            is SavePhotoEffect.Navigation.Save -> {
+                val time = LocalDateTime.now(ZoneId.of("UTC"))
+                val fileName = "${System.currentTimeMillis()}.jpg"
+                val fileUri = ImageConvert.makeFileToUri(state.uri.toString(), fileName)
+                val label = state.appState?.selectedLabel?.value
 
-    LaunchedEffect(location) {
-        newLocation.value = location
-    }
+                viewModel.savePhoto(
+                    uri = fileUri,
+                    fileName = fileName,
+                    label = label!!,
+                    location = state.location!!,
+                    description = state.description,
+                    isRepresented = state.represented,
+                    time = time
+                )
 
-    if (newLocation.value == null) {
-        val locationSettingsLauncher =
-            rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.StartIntentSenderForResult()
-            ) { result ->
-                if (result.resultCode == RESULT_OK) {
-                    locationHandler.getLocation { location ->
-                        newLocation.value = location
-                    }
-                } else {
-                    onCancel()
-                }
+                insertFirebaseService(
+                    context = context,
+                    uri = fileUri,
+                    fileName = fileName,
+                    label = label,
+                    location = state.location,
+                    description = state.description,
+                    time = time
+                )
             }
 
-        locationHandler.checkLocationSettings(
-            takePicture = {},
-            showGPSActivationDialog = { intentSenderRequest ->
-                locationSettingsLauncher.launch(intentSenderRequest)
-            },
-            airPlaneModeMessage = {}
-        )
+            is SavePhotoEffect.Navigation.Back -> state.onBack()
+
+            is SavePhotoEffect.Navigation.Cancel -> state.onCancel()
+
+            is SavePhotoEffect.Navigation.MyPage -> state.onNavigateToMyPage()
+
+            is SavePhotoEffect.Navigation.LabelSelect -> state.onLabelSelect()
+        }
     }
 
     SavePhotoScreen(
-        model = model,
-        location = newLocation,
-        photoSaveState = photoSaveState,
-        rememberDescription = rememberDescription,
-        onDescriptionChange = { newDescription ->
-            rememberDescription.value = newDescription
-        },
-        isRepresented = isRepresented,
-        onRepresentedChange = { isRepresented.value = !isRepresented.value },
-        onNavigateToMyPage = onNavigateToMyPage,
-        onLabelSelect = onLabelSelect,
-        onBack = onBack,
-        savePhoto = viewModel::savePhoto,
-        label = label,
+        state = state,
+        initState = initState,
+        saveState = saveState,
+        changeState = viewModel::changeState,
+        onIntent = viewModel::onIntent,
     )
 
-    if (photoSaveState.value is UiState.Success) {
-        onSave()
-    }
+//    vertexAI(
+//        context = context,
+//        uri = initState.uri,
+//        vertexAIState = vertexAIState,
+//        getGeneratedContent = viewModel::getGeneratedContent
+//    )
 }
 
 @Composable
 fun SavePhotoScreen(
-    model: Uri,
-    location: State<Location?>,
-    rememberDescription: State<String>,
-    onDescriptionChange: (String) -> Unit,
-    isRepresented: State<Boolean>,
-    onRepresentedChange: () -> Unit,
-    photoSaveState: State<UiState<Unit>>,
-    onNavigateToMyPage: () -> Unit,
-    onLabelSelect: () -> Unit,
-    onBack: () -> Unit,
-    savePhoto: (String, String, Label, Location, String, Boolean, LocalDateTime) -> Unit,
-    label: Label?,
+    state: SavePhotoState,
+    initState: SavePhotoState,
+    saveState: UiState<Unit>,
+    changeState: (SavePhotoState) -> Unit,
+    onIntent: (SavePhotoIntent) -> Unit,
 ) {
     val context = LocalContext.current
-
     Scaffold(
         topBar = {
             context.GetTopBar(
                 title = stringResource(R.string.topbar_title_add_album),
                 type = AppBarType.All,
-                navigateToMyPage = onNavigateToMyPage,
-                navigateToBackScreen = onBack,
+                navigateToMyPage = { onIntent(SavePhotoIntent.MyPageButtonClicked) },
+                navigateToBackScreen = { onIntent(SavePhotoIntent.BackButtonClicked) },
             )
         },
     ) { innerPadding ->
         BackgroundImage()
 
-        if (location.value == null) {
-            Box(modifier = Modifier.padding(innerPadding)) {
-                ProgressIndicator(location.value == null)
+        when (state.status) {
+            is UiStatus.Idle -> {
+                changeState(
+                    if (initState.location == null) initState
+                    else initState.copy(status = UiStatus.Success)
+                )
             }
-        } else {
-            if (context.isPortrait()) {
-                SavePhotoScreenPortrait(
-                    innerPadding = innerPadding,
-                    uri = model,
-                    label = label,
-                    location = location.value!!,
-                    rememberDescription = rememberDescription,
-                    onDescriptionChange = onDescriptionChange,
-                    isRepresented = isRepresented,
-                    onRepresentedChange = onRepresentedChange,
-                    photoSaveState = photoSaveState,
-                    onLabelSelect = onLabelSelect,
-                    onBack = onBack,
-                    savePhoto = savePhoto,
-                )
-            } else {
-                SavePhotoScreenLandscape(
-                    innerPadding = innerPadding,
-                    uri = model,
-                    label = label,
-                    location = location.value!!,
-                    rememberDescription = rememberDescription,
-                    onDescriptionChange = onDescriptionChange,
-                    isRepresented = isRepresented,
-                    onRepresentedChange = onRepresentedChange,
-                    photoSaveState = photoSaveState,
-                    onLabelSelect = onLabelSelect,
-                    onBack = onBack,
-                    savePhoto = savePhoto,
-                )
+
+            is UiStatus.Loading -> {
+                state.getLocation { location ->
+                    changeState(state.copy(status = UiStatus.Success, location = location))
+                }
+
+                Box(modifier = Modifier.padding(innerPadding)) {
+                    ProgressIndicator(state.location == null)
+                }
+            }
+
+            is UiStatus.Success -> {
+                if (context.isPortrait()) {
+                    SavePhotoScreenPortrait(
+                        innerPadding = innerPadding,
+                        state = state,
+                        saveState = saveState,
+                        onIntent = onIntent,
+                    )
+                } else {
+                    SavePhotoScreenLandscape(
+                        innerPadding = innerPadding,
+                        state = state,
+                        saveState = saveState,
+                        onIntent = onIntent,
+                    )
+                }
             }
         }
     }
 
-    if (photoSaveState.value == UiState.Loading) {
-        RotatingImageLoading(
-            drawableRes = R.drawable.fish_loading_image,
-            stringRes = R.string.save_photo_screen_loading,
-        )
+    when (saveState) {
+        is UiState.Loading -> {
+            RotatingImageLoading(
+                drawableRes = R.drawable.fish_loading_image,
+                stringRes = R.string.save_photo_screen_loading,
+            )
+        }
+
+        is UiState.Success -> {
+            state.onSave()
+        }
+
+        else -> Unit
     }
 
-    BackHandler(onBack = onBack)
+    BackHandler(onBack = { onIntent(SavePhotoIntent.BackButtonClicked) })
 }
 
 @Composable
@@ -270,7 +261,7 @@ fun IconTextButton(
 
 @Composable
 fun ToggleButton(
-    selected: State<Boolean>,
+    selected: () -> Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -281,7 +272,7 @@ fun ToggleButton(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         RadioButton(
-            selected = selected.value,
+            selected = selected(),
             onClick = { onClick() },
             modifier = modifier
                 .size(24.dp)
@@ -293,7 +284,7 @@ fun ToggleButton(
 
 @Composable
 fun LabelSelection(
-    label: Label?,
+    label: () -> Label?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -326,7 +317,7 @@ fun LabelSelection(
                         .weight(1f)
                         .padding(horizontal = 24.dp)
                 ) {
-                    label?.let {
+                    label()?.let { label ->
                         val backgroundColor = Color(label.backgroundColor.toLong(16))
                         SuggestionChip(
                             onClick = { onClick() },
@@ -350,7 +341,7 @@ fun LabelSelection(
 
 @Composable
 fun Description(
-    description: State<String>,
+    description: () -> String,
     modifier: Modifier,
     onValueChange: (String) -> Unit,
 ) {
@@ -363,7 +354,7 @@ fun Description(
             fontSize = TextUnit(20f, TextUnitType.Sp),
         )
         TextField(
-            value = description.value,
+            value = description(),
             onValueChange = { text -> onValueChange(text) },
             placeholder = { Text(stringResource(R.string.save_photo_screen_description_about_photo)) },
             modifier = modifier
@@ -397,29 +388,41 @@ fun insertFirebaseService(
     context.startService(intent)
 }
 
+private fun vertexAI(
+    context: Context,
+    uri: Uri,
+    vertexAIState: State<UiState<String>>,
+    getGeneratedContent: (Bitmap?) -> Unit
+) {
+    if (vertexAIState.value is UiState.Idle && NetworkState.getNetWorkCode() != DISCONNECTED) {
+        val bitmap = loadImageFromUri(context, uri)
+        getGeneratedContent(bitmap)
+    }
+}
+
+private fun loadImageFromUri(context: Context, uri: Uri): Bitmap? {
+    return try {
+        context.contentResolver.openInputStream(uri)?.use { inputStream ->
+            BitmapFactory.decodeStream(inputStream)
+        }
+    } catch (e: IOException) {
+        null
+    }
+}
+
 @Preview(showBackground = true, uiMode = UI_MODE_NIGHT_YES)
 @Preview(showBackground = true, uiMode = UI_MODE_NIGHT_NO)
 @Composable
 private fun ScreenPreview() {
     NatureAlbumTheme {
-        val uiState = rememberSaveable { mutableStateOf(UiState.Success(Unit)) }
-        val rememberDescription = rememberSaveable { mutableStateOf("") }
-        val isRepresented = rememberSaveable { mutableStateOf(false) }
-        val location = rememberSaveable { mutableStateOf(null) }
+        val state = SavePhotoState()
 
         SavePhotoScreen(
-            model = "".toUri(),
-            location = location,
-            rememberDescription = rememberDescription,
-            onDescriptionChange = { },
-            isRepresented = isRepresented,
-            onRepresentedChange = { },
-            photoSaveState = uiState,
-            onNavigateToMyPage = { },
-            onLabelSelect = { },
-            onBack = { },
-            savePhoto = { _, _, _, _, _, _, _ -> },
-            label = Label.emptyLabel(),
+            state = state,
+            initState = state,
+            saveState = UiState.Idle,
+            changeState = {},
+            onIntent = {},
         )
     }
 }

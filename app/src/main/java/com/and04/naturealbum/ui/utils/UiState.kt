@@ -6,3 +6,9 @@ sealed class UiState<out T> {
     data class Success<T>(val data: T) : UiState<T>()
     data class Error<T>(val message: T) : UiState<Nothing>()
 }
+
+sealed interface UiStatus {
+    data object Idle : UiStatus
+    data object Loading : UiStatus
+    data object Success : UiStatus
+}

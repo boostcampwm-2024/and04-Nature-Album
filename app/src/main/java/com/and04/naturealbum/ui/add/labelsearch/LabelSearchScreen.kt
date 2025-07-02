@@ -62,7 +62,7 @@ fun LabelSearchScreen(
     viewModel: LabelSearchViewModel = hiltViewModel(),
     savePhotoViewModel: SavePhotoViewModel,
 ) {
-    val uiState = savePhotoViewModel.uiState.collectAsStateWithLifecycle()
+    val uiState = savePhotoViewModel.vertexAIState.collectAsStateWithLifecycle()
     val labelsState by viewModel.uiState.collectAsStateWithLifecycle()
     val queryLabel = viewModel.queryLabel.collectAsStateWithLifecycle()
 

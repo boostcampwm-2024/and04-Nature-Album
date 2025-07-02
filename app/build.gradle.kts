@@ -172,6 +172,12 @@ dependencies {
 
     //Preferences Datastore
     implementation(libs.androidx.datastore.preferences)
+
+    //Orbit Mvi
+    implementation(libs.orbit.core)
+    implementation(libs.orbit.viewmodel)
+    implementation(libs.orbit.compose)
+
 }
 
 kapt {

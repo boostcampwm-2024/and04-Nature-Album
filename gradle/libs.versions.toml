@@ -25,6 +25,9 @@ composeBom = "2024.10.01"
 mapSdk = "3.19.1"
 mockitoCore = "4.11.0"
 mockitoKotlin = "4.1.0"
+orbitCompose = "10.0.0"
+orbitCore = "10.0.0"
+orbitViewmodel = "10.0.0"
 playServicesAuth = "21.2.0"
 materialIconsExtended = "1.7.5"
 roomRuntime = "2.6.1"
@@ -98,6 +101,9 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 map-sdk = { module = "com.naver.maps:map-sdk", version.ref = "mapSdk" }
 mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockitoCore" }
 mockito-kotlin = { module = "org.mockito.kotlin:mockito-kotlin", version.ref = "mockitoKotlin" }
+orbit-compose = { module = "org.orbit-mvi:orbit-compose", version.ref = "orbitCompose" }
+orbit-core = { module = "org.orbit-mvi:orbit-core", version.ref = "orbitCore" }
+orbit-viewmodel = { module = "org.orbit-mvi:orbit-viewmodel", version.ref = "orbitViewmodel" }
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
