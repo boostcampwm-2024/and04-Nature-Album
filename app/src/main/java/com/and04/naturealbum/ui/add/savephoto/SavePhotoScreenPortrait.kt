@@ -28,8 +28,8 @@ import com.and04.naturealbum.ui.utils.UiState
 @Composable
 fun SavePhotoScreenPortrait(
     innerPadding: PaddingValues,
-    state: SavePhotoState,
-    saveState: UiState<Unit>,
+    state: () -> SavePhotoState,
+    saveState: () -> UiState<Unit>,
     onIntent: (SavePhotoIntent) -> Unit,
 ) {
     val context = LocalContext.current
@@ -38,7 +38,7 @@ fun SavePhotoScreenPortrait(
     ) {
         AsyncImage(
             model = ImageRequest.Builder(context)
-                .data(state.uri)
+                .data(state().uri)
                 .crossfade(true)
                 .build(),
             contentDescription = stringResource(R.string.save_photo_screen_image_description),
@@ -49,11 +49,12 @@ fun SavePhotoScreenPortrait(
         )
 
         LabelSelection(
-            label = { state.appState?.selectedLabel?.value },
-            onClick = state.onLabelSelect,
+            label = { state().appState?.selectedLabel?.value },
+            onClick = state().onLabelSelect,
         )
 
-        Description(description = { state.description },
+        Description(
+            description = { state().description },
             modifier = Modifier.weight(1f),
             onValueChange = { newDescription ->
                 onIntent(
@@ -65,7 +66,7 @@ fun SavePhotoScreenPortrait(
         )
 
         ToggleButton(
-            selected = { state.represented },
+            selected = state().represented,
             onClick = { onIntent(SavePhotoIntent.RepresentedToggleClicked) },
             modifier = Modifier
                 .padding(vertical = 8.dp)
@@ -86,7 +87,7 @@ fun SavePhotoScreenPortrait(
                 onClick = { onIntent(SavePhotoIntent.CancelButtonClicked) })
 
             IconTextButton(
-                enabled = (state.appState?.selectedLabel?.value != null) && (saveState != UiState.Loading),
+                enabled = (state().appState?.selectedLabel?.value != null) && (saveState() != UiState.Loading),
                 modifier = Modifier.weight(1f),
                 imageVector = Icons.Outlined.Create,
                 stringRes = R.string.save_photo_screen_save,

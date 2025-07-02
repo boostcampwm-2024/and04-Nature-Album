@@ -30,8 +30,8 @@ fun NavGraphBuilder.saveAlbumNavGraph(
         val savePhotoState by viewModel.collectAsState()
 
         SavePhotoScreen(
-            state = savePhotoState,
-            initState = savePhotoState.init(state, navigator, takePictureLauncher),
+            state = { savePhotoState },
+            initState = { savePhotoState.init(state, navigator, takePictureLauncher) },
             viewModel = viewModel
         )
     }

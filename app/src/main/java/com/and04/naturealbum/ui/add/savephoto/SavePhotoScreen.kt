@@ -86,29 +86,28 @@ import java.time.format.DateTimeFormatter
 
 @Composable
 fun SavePhotoScreen(
-    state: SavePhotoState,
-    initState: SavePhotoState,
+    state: () -> SavePhotoState,
+    initState: () -> SavePhotoState,
     viewModel: SavePhotoViewModel,
 ) {
     val context = LocalContext.current
     val saveState by viewModel.saveState.collectAsStateWithLifecycle()
     //val vertexAIState = viewModel.vertexAIState.collectAsStateWithLifecycle()
-
     viewModel.collectSideEffect { effect ->
         when (effect) {
             is SavePhotoEffect.Navigation.Save -> {
                 val time = LocalDateTime.now(ZoneId.of("UTC"))
                 val fileName = "${System.currentTimeMillis()}.jpg"
-                val fileUri = ImageConvert.makeFileToUri(state.uri.toString(), fileName)
-                val label = state.appState?.selectedLabel?.value
+                val fileUri = ImageConvert.makeFileToUri(state().uri.toString(), fileName)
+                val label = state().appState?.selectedLabel?.value
 
                 viewModel.savePhoto(
                     uri = fileUri,
                     fileName = fileName,
                     label = label!!,
-                    location = state.location!!,
-                    description = state.description,
-                    isRepresented = state.represented,
+                    location = state().location!!,
+                    description = state().description,
+                    isRepresented = state().represented,
                     time = time
                 )
 
@@ -117,26 +116,26 @@ fun SavePhotoScreen(
                     uri = fileUri,
                     fileName = fileName,
                     label = label,
-                    location = state.location,
-                    description = state.description,
+                    location = state().location!!,
+                    description = state().description,
                     time = time
                 )
             }
 
-            is SavePhotoEffect.Navigation.Back -> state.onBack()
+            is SavePhotoEffect.Navigation.Back -> state().onBack()
 
-            is SavePhotoEffect.Navigation.Cancel -> state.onCancel()
+            is SavePhotoEffect.Navigation.Cancel -> state().onCancel()
 
-            is SavePhotoEffect.Navigation.MyPage -> state.onNavigateToMyPage()
+            is SavePhotoEffect.Navigation.MyPage -> state().onNavigateToMyPage()
 
-            is SavePhotoEffect.Navigation.LabelSelect -> state.onLabelSelect()
+            is SavePhotoEffect.Navigation.LabelSelect -> state().onLabelSelect()
         }
     }
 
     SavePhotoScreen(
-        state = state,
-        initState = initState,
-        saveState = saveState,
+        state = { state() },
+        initState = { initState() },
+        saveState = { saveState },
         changeState = viewModel::changeState,
         onIntent = viewModel::onIntent,
     )
@@ -151,9 +150,9 @@ fun SavePhotoScreen(
 
 @Composable
 fun SavePhotoScreen(
-    state: SavePhotoState,
-    initState: SavePhotoState,
-    saveState: UiState<Unit>,
+    state: () -> SavePhotoState,
+    initState: () -> SavePhotoState,
+    saveState: () -> UiState<Unit>,
     changeState: (SavePhotoState) -> Unit,
     onIntent: (SavePhotoIntent) -> Unit,
 ) {
@@ -170,21 +169,21 @@ fun SavePhotoScreen(
     ) { innerPadding ->
         BackgroundImage()
 
-        when (state.status) {
+        when (state().status) {
             is UiStatus.Idle -> {
                 changeState(
-                    if (initState.location == null) initState
-                    else initState.copy(status = UiStatus.Success)
+                    if (initState().location == null) initState()
+                    else initState().copy(status = UiStatus.Success)
                 )
             }
 
             is UiStatus.Loading -> {
-                state.getLocation { location ->
-                    changeState(state.copy(status = UiStatus.Success, location = location))
+                state().getLocation { location ->
+                    changeState(state().copy(status = UiStatus.Success, location = location))
                 }
 
                 Box(modifier = Modifier.padding(innerPadding)) {
-                    ProgressIndicator(state.location == null)
+                    ProgressIndicator(state().location == null)
                 }
             }
 
@@ -208,7 +207,7 @@ fun SavePhotoScreen(
         }
     }
 
-    when (saveState) {
+    when (saveState()) {
         is UiState.Loading -> {
             RotatingImageLoading(
                 drawableRes = R.drawable.fish_loading_image,
@@ -217,7 +216,7 @@ fun SavePhotoScreen(
         }
 
         is UiState.Success -> {
-            state.onSave()
+            state().onSave()
         }
 
         else -> Unit
@@ -261,7 +260,7 @@ fun IconTextButton(
 
 @Composable
 fun ToggleButton(
-    selected: () -> Boolean,
+    selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -272,7 +271,7 @@ fun ToggleButton(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         RadioButton(
-            selected = selected(),
+            selected = selected,
             onClick = { onClick() },
             modifier = modifier
                 .size(24.dp)
@@ -359,7 +358,7 @@ fun Description(
             placeholder = { Text(stringResource(R.string.save_photo_screen_description_about_photo)) },
             modifier = modifier
                 .weight(1f)
-                .fillMaxWidth()
+                .fillMaxWidth(),
         )
     }
 }
@@ -418,9 +417,9 @@ private fun ScreenPreview() {
         val state = SavePhotoState()
 
         SavePhotoScreen(
-            state = state,
-            initState = state,
-            saveState = UiState.Idle,
+            state = { state },
+            initState = { state },
+            saveState = { UiState.Idle },
             changeState = {},
             onIntent = {},
         )
